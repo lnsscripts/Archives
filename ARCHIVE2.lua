@@ -3635,7 +3635,7 @@ MainWindow
     font: verdana-11px-rounded
     text-align: center
     minimum: 0
-    maximum: 300
+    maximum: 9999
     step: 1
 
   Label
@@ -4530,9 +4530,9 @@ preyInterface.delayRetries.onValueChange = function(_, value)
   savePreyChar()
 end
 
-preyInterface.maxRetriesPrey:setValue(clamp(st.maxRetries, 0, 300))
+preyInterface.maxRetriesPrey:setValue(clamp(st.maxRetries, 0, 9999))
 preyInterface.maxRetriesPrey.onValueChange = function(_, value)
-  st.maxRetries = clamp(value, 0, 300)
+  st.maxRetries = clamp(value, 0, 9999)
   savePreyChar()
 end
 
