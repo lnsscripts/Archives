@@ -4943,7 +4943,7 @@ MainWindow
 warnInterface:hide()
 
 if g_app and g_app.isMobile and g_app.isMobile() then
-  equipInterface:setSize("430 405")
+  equipInterface:setSize("430 425")
 end
 
 local function updateDelay()
