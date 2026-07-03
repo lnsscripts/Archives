@@ -7128,7 +7128,7 @@ end
 local defaultStrings = {386, 12202, 21965, 21966}
 local defaultUse = {1948, 5542, 7771, 20475, 20573, 31262, 21297, 1968, 31130, 31129, 435, 21298}
 local defaultDoors = {8265, 7727, 5111, 8261, 8259, 5113, 1646, 9567, 9558, 5287, 5289, 6260, 22506, 5122, 1112, 7712, 7721, 7723, 6258}
-local defaultTeleports = {}
+local defaultTeleports = {22761, 32176, 34111, 1949, 1959}
 
 local function copyList(t)
   local r = {}
