@@ -5052,3 +5052,3909 @@ macro(200, function()
   utanaCast = now
 end)
 end)
+
+lnsRunBlock("HEALFRIEND", function()
+  storage = storage or {}
+storage.LNSHealFriendGlobal = storage.LNSHealFriendGlobal or {}
+
+local healFriendStorage = storage.LNSHealFriendGlobal
+
+local function saveHealFriendGlobal()
+  storage.LNSHealFriendGlobal = healFriendStorage
+end
+
+local function saveHealFriendChar()
+  saveHealFriendGlobal()
+end
+
+local function trimText(s)
+  return tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", "")
+end
+
+local function lowerTrim(s)
+  return trimText(s):lower()
+end
+
+local function getBotItemId(widget)
+  if not widget then return 0 end
+  if widget.getItemId then
+    local ok, id = pcall(function() return widget:getItemId() end)
+    if ok and id and id > 0 then return id end
+  end
+  if widget.getItem then
+    local ok, item = pcall(function() return widget:getItem() end)
+    if ok and item and item.getId then
+      local ok2, id = pcall(function() return item:getId() end)
+      if ok2 and id and id > 0 then return id end
+    end
+  end
+  return 0
+end
+
+-- ===============================
+-- BUTTON
+-- ===============================
+switchSio = "sioButton"
+healFriendStorage[switchSio] = healFriendStorage[switchSio] or { enabled = false }
+
+sioButton = setupUI([[
+Panel
+  height: 19
+
+  BotSwitch
+    id: title
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    text-align: center
+    margin-right: 45
+    text: Healing Friend
+    height: 18
+    color: white
+
+  Button
+    id: settings
+    anchors.top: prev.top
+    anchors.left: prev.right
+    anchors.right: parent.right
+    margin-left: 2
+    height: 18
+    text: Config
+    opacity: 1.00
+    color: white
+]])
+sioButton:setId(switchSio)
+sioButton.title:setOn(healFriendStorage[switchSio].enabled)
+
+sioButton.title.onClick = function(widget)
+  local newState = not widget:isOn()
+  widget:setOn(newState)
+  healFriendStorage[switchSio].enabled = newState
+  saveHealFriendChar()
+end
+
+local prioRowTemplate = [[
+UIWidget
+  height: 19
+  margin-top: 1
+  background-color: #2a2a2a
+  border: 1 #3a3a3a
+
+  Label
+    id: voc
+    anchors.left: parent.left
+    anchors.verticalCenter: parent.verticalCenter
+    margin-left: 6
+    color: white
+    text: ""
+
+  Button
+    id: down
+    anchors.right: parent.right
+    anchors.verticalCenter: parent.verticalCenter
+    width: 16
+    height: 16
+    margin-right: 2
+    text: v
+    color: white
+
+  Button
+    id: up
+    anchors.right: down.left
+    anchors.verticalCenter: parent.verticalCenter
+    width: 16
+    height: 16
+    margin-right: 2
+    text: ^
+    color: white
+]]
+
+sioInterface = setupUI([[
+MainWindow
+  id: mainPanel
+  size: 380 390
+  border: 1 black
+  text: Panel Heal-Friend
+  anchors.centerIn: parent
+  margin-top: -50
+
+  Panel
+    id: infolist1
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    size: 270 200
+    image-source: /images/ui/miniwindow
+    image-border: 20
+    margin-left: -4
+    margin-right: -4
+
+    Label
+      id: title
+      anchors.horizontalCenter: parent.horizontalCenter
+      anchors.top: parent.top
+      text: Settings for Heal Friend
+      margin-top: 2
+
+  Label
+    id: labelSelectType
+    anchors.top: infolist1.top
+    anchors.left: infolist1.left
+    margin-top: 25
+    margin-left: 10
+    text: Mode Healing:
+    text-auto-resize: true
+
+  BotSwitch
+    id: UseSpell
+    anchors.verticalCenter: labelSelectType.verticalCenter
+    anchors.left: labelSelectType.right
+    margin-left: 10
+    size: 125 19
+    text: Health Spell
+
+  BotSwitch
+    id: UsePotion
+    anchors.verticalCenter: labelSelectType.verticalCenter
+    anchors.left: UseSpell.right
+    margin-left: 1
+    size: 125 19
+    text: Health Item
+
+  Label
+    id: hpCura
+    anchors.top: UseSpell.bottom
+    anchors.left: labelSelectType.left
+    text: Friend HP%:
+    margin-top: 6
+
+  HorizontalScrollBar
+    id: percentHp
+    anchors.verticalCenter: hpCura.verticalCenter
+    anchors.left: UseSpell.left
+    anchors.right: parent.right
+    margin-right: 5
+    minimum: 1
+    maximum: 100
+
+  Label
+    id: percentHpValue
+    anchors.verticalCenter: prev.verticalCenter
+    anchors.left: prev.left
+    anchors.right: prev.right
+    text-align: center
+    text: 80%
+    color: white
+
+  Label
+    id: distancePotion
+    anchors.top: hpCura.bottom
+    anchors.left: labelSelectType.left
+    text: Distance Item:
+    margin-top: 8
+
+  HorizontalScrollBar
+    id: distUsePot
+    anchors.verticalCenter: distancePotion.verticalCenter
+    anchors.left: UseSpell.left
+    anchors.right: parent.right
+    margin-right: 5
+    minimum: 1
+    maximum: 10
+
+  Label
+    id: distUsePotValue
+    anchors.verticalCenter: distUsePot.verticalCenter
+    anchors.left: prev.left
+    anchors.right: prev.right
+    text-align: center
+    text: 3 Sqm
+    color: white
+
+  Label
+    id: labelSolicitar
+    anchors.top: distancePotion.bottom
+    anchors.left: labelSelectType.left
+    text: Ask Mana:
+    margin-top: 8
+
+  HorizontalScrollBar
+    id: percentMp
+    anchors.verticalCenter: labelSolicitar.verticalCenter
+    anchors.left: UseSpell.left
+    anchors.right: parent.right
+    margin-right: 5
+    minimum: 1
+    maximum: 100
+
+  Label
+    id: percentMpValue
+    anchors.verticalCenter: prev.verticalCenter
+    anchors.left: prev.left
+    anchors.right: prev.right
+    text-align: center
+    text: 50%
+    color: white
+
+  HorizontalSeparator
+    id: sepHor
+    anchors.top: prev.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-top: 5
+
+  Label
+    id: HealingSpells
+    anchors.top: sepHor.bottom
+    anchors.left: distancePotion.left
+    margin-top: 10
+    text: Healing Spells:
+
+  CheckBox
+    id: exuraSio
+    anchors.top: HealingSpells.bottom
+    anchors.left: HealingSpells.left
+    margin-top: 5
+    text: Exura Sio
+    text-auto-resize: true
+    color: gray
+    $checked:
+      color: green
+
+  CheckBox
+    id: masRes
+    anchors.top: exuraSio.bottom
+    anchors.left: exuraSio.left
+    margin-top: 8
+    text: Mas Res
+    text-auto-resize: true
+    color: gray
+    $checked:
+      color: green
+
+  CheckBox
+    id: checkOtherSpell
+    anchors.top: masRes.bottom
+    anchors.left: masRes.left
+    margin-top: 8
+
+  TextEdit
+    id: otherSpell
+    anchors.verticalCenter: checkOtherSpell.verticalCenter
+    anchors.left: checkOtherSpell.right
+    size: 110 19
+    margin-left: 7
+    placeholder: Other Spell
+
+  Label
+    id: labelPotion
+    anchors.top: HealingSpells.top
+    anchors.left: otherSpell.right
+    margin-left: 40
+    text: Health Potion:
+
+  BotItem
+    id: potionID
+    anchors.left: prev.right
+    anchors.verticalCenter: prev.verticalCenter
+    margin-left: 58
+    margin-top: 2
+
+  Label
+    id: labelPotionMP
+    anchors.top: labelPotion.top
+    anchors.left: labelPotion.left
+    margin-top: 45
+    text: Mana Potion:
+
+  BotItem
+    id: potionMPID
+    anchors.left: potionID.left
+    anchors.verticalCenter: prev.verticalCenter
+    margin-top: 3
+
+  Panel
+    id: infolist2
+    anchors.top: infolist1.bottom
+    anchors.left: infolist1.left
+    size: 200 130
+    image-source: /images/ui/miniwindow
+    image-border: 20
+    margin-top: 5
+
+    Label
+      id: title
+      anchors.horizontalCenter: parent.horizontalCenter
+      anchors.top: parent.top
+      text: Heal Toggles
+      margin-top: 2
+
+  BotSwitch
+    id: friendList
+    anchors.top: prev.top
+    anchors.left: prev.left
+    anchors.right: prev.right
+    margin: 10
+    margin-top: 22
+    width: 18
+    text: Friend List
+
+  BotSwitch
+    id: partyMembers
+    anchors.top: prev.bottom
+    anchors.left: prev.left
+    anchors.right: prev.right
+    margin-top: 4
+    width: 18
+    text: Party Members
+
+  BotSwitch
+    id: guildMembers
+    anchors.top: prev.bottom
+    anchors.left: prev.left
+    anchors.right: prev.right
+    margin-top: 4
+    width: 18
+    text: Guild Members
+
+  BotSwitch
+    id: cureMPFriend
+    anchors.top: prev.bottom
+    anchors.left: prev.left
+    anchors.right: prev.right
+    margin-top: 4
+    width: 18
+    text: Request Mana
+
+  ComboBox
+    id: selectChat
+    anchors.top: prev.bottom
+    anchors.left: prev.left
+    anchors.right: prev.right
+    margin-top: 4
+    height: 20
+    @onSetup: |
+      self:addOption("Default")
+      self:addOption("Party Channel")
+
+  Panel
+    id: infolist3
+    anchors.top: infolist2.top
+    anchors.left: infolist2.right
+    anchors.right: parent.right
+    margin-right: -4
+    margin-left: 7
+    image-source: /images/ui/miniwindow
+    image-border: 20
+    height: 130
+
+    Label
+      id: title
+      anchors.horizontalCenter: parent.horizontalCenter
+      anchors.top: parent.top
+      text: Priority List
+      margin-top: 2
+
+  TextList
+    id: prioList
+    anchors.top: infolist3.top
+    anchors.left: infolist3.left
+    anchors.right: infolist3.right
+    margin-top: 20
+    margin-left: 5
+    margin-right: 5
+    height: 105
+    image-source: ""
+
+  BotSwitch
+    id: listPrio
+    anchors.top: prev.top
+    anchors.left: prev.left
+    anchors.right: prev.right
+    width: 18
+    margin-top: 83
+    text: Priority Vocation
+
+  Button
+    id: closePanel
+    anchors.left: infolist2.left
+    anchors.right: infolist3.right
+    anchors.top: prioList.bottom
+    size: 35 20
+    margin-top: 9
+    text: Close
+]], g_ui.getRootWidget())
+
+sioInterface:hide()
+
+if g_app and g_app.isMobile and g_app.isMobile() then
+  sioInterface:setSize("380 410")
+end
+
+sioInterface.closePanel.onClick = function()
+  sioInterface:hide()
+end
+
+sioButton.settings.onClick = function()
+  if sioInterface:isVisible() then
+    sioInterface:hide()
+  else
+    sioInterface:show()
+    sioInterface:raise()
+    sioInterface:focus()
+  end
+end
+
+-- ===============================
+-- MIGRACAO STORAGE ANTIGO -> CHARSTORAGE
+-- ===============================
+if storage and storage.healFriend and not healFriendStorage.healFriendMigrated then
+  healFriendStorage.healFriend = healFriendStorage.healFriend or {}
+  for k, v in pairs(storage.healFriend) do
+    if healFriendStorage.healFriend[k] == nil then
+      healFriendStorage.healFriend[k] = v
+    end
+  end
+  healFriendStorage.healFriendMigrated = true
+  saveHealFriendChar()
+end
+
+if storage and storage[switchSio] and not healFriendStorage.sioButtonMigrated then
+  healFriendStorage[switchSio] = healFriendStorage[switchSio] or {}
+  if healFriendStorage[switchSio].enabled == nil then
+    healFriendStorage[switchSio].enabled = storage[switchSio].enabled == true
+  end
+  healFriendStorage.sioButtonMigrated = true
+  saveHealFriendChar()
+end
+
+if not healFriendStorage.healFriend then
+  healFriendStorage.healFriend = {
+    useSpell = false,
+    usePotion = false,
+    percentHp = 80,
+    distUsePot = 3,
+    percentMp = 50,
+    exuraSio = true,
+    masRes = false,
+    checkOtherSpell = false,
+    otherSpell = "",
+    potionID = 0,
+    potionMPID = 0,
+    friendList = false,
+    partyMembers = false,
+    guildMembers = false,
+    listPrio = false,
+    cureMPFriend = false,
+    selectChat = "Default",
+    prioOrder = { "Knight", "Paladin", "Monk", "Mage" }
+  }
+end
+
+local config = healFriendStorage.healFriend
+config.prioOrder = config.prioOrder or { "Knight", "Paladin", "Monk", "Mage" }
+
+local function saveConfig()
+  saveHealFriendChar()
+end
+
+sioInterface.selectChat:setCurrentOption(config.selectChat)
+
+sioInterface.selectChat.onOptionChange = function(widget, option)
+  config.selectChat = option
+  saveConfig()
+end
+
+local function setScrollLabel(label, value, suffix)
+  label:setText(tostring(value) .. (suffix or ""))
+end
+
+local function clearChildren(w)
+  if not w then return end
+  local ch = w:getChildren() or {}
+  for i = #ch, 1, -1 do
+    local c = ch[i]
+    if c and not c:isDestroyed() then c:destroy() end
+  end
+end
+
+local function swap(t, i, j)
+  if type(t) ~= "table" then return end
+  if i < 1 or j < 1 or i > #t or j > #t then return end
+  t[i], t[j] = t[j], t[i]
+end
+
+local function rebuildPrioList()
+  clearChildren(sioInterface.prioList)
+
+  local fixed = { "Knight", "Paladin", "Monk", "Mage" }
+
+  if type(config.prioOrder) ~= "table" or #config.prioOrder ~= 4 then
+    config.prioOrder = fixed
+    saveConfig()
+  end
+
+  for i = 1, #config.prioOrder do
+    local voc = config.prioOrder[i]
+    local row = setupUI(prioRowTemplate, sioInterface.prioList)
+
+    row.voc:setText(voc)
+
+    row.up.onClick = function()
+      swap(config.prioOrder, i, i - 1)
+      saveConfig()
+      rebuildPrioList()
+    end
+
+    row.down.onClick = function()
+      swap(config.prioOrder, i, i + 1)
+      saveConfig()
+      rebuildPrioList()
+    end
+
+    if i == 1 then row.up:setEnabled(false) end
+    if i == #config.prioOrder then row.down:setEnabled(false) end
+  end
+end
+
+rebuildPrioList()
+
+sioInterface.UseSpell.onClick = function(widget)
+  config.useSpell = not config.useSpell
+  widget:setOn(config.useSpell)
+  if config.useSpell then
+    config.usePotion = false
+    sioInterface.UsePotion:setOn(false)
+  end
+  saveConfig()
+end
+sioInterface.UseSpell:setOn(config.useSpell)
+
+sioInterface.UsePotion.onClick = function(widget)
+  config.usePotion = not config.usePotion
+  widget:setOn(config.usePotion)
+  if config.usePotion then
+    config.useSpell = false
+    sioInterface.UseSpell:setOn(false)
+  end
+  saveConfig()
+end
+sioInterface.UsePotion:setOn(config.usePotion)
+
+sioInterface.percentHp.onValueChange = function(scroll, value)
+  config.percentHp = value
+  setScrollLabel(sioInterface.percentHpValue, value, "%")
+  saveConfig()
+end
+sioInterface.percentHp:setValue(config.percentHp)
+setScrollLabel(sioInterface.percentHpValue, config.percentHp, "%")
+
+sioInterface.distUsePot.onValueChange = function(scroll, value)
+  config.distUsePot = value
+  setScrollLabel(sioInterface.distUsePotValue, value, " Sqm")
+  saveConfig()
+end
+sioInterface.distUsePot:setValue(config.distUsePot)
+setScrollLabel(sioInterface.distUsePotValue, config.distUsePot, " Sqm")
+
+sioInterface.percentMp.onValueChange = function(scroll, value)
+  config.percentMp = value
+  setScrollLabel(sioInterface.percentMpValue, value, "%")
+  saveConfig()
+end
+sioInterface.percentMp:setValue(config.percentMp)
+setScrollLabel(sioInterface.percentMpValue, config.percentMp, "%")
+
+sioInterface.exuraSio.onClick = function(widget)
+  config.exuraSio = not config.exuraSio
+  widget:setChecked(config.exuraSio)
+  saveConfig()
+end
+sioInterface.exuraSio:setChecked(config.exuraSio)
+
+sioInterface.masRes.onClick = function(widget)
+  config.masRes = not config.masRes
+  widget:setChecked(config.masRes)
+  saveConfig()
+end
+sioInterface.masRes:setChecked(config.masRes)
+
+sioInterface.checkOtherSpell.onClick = function(widget)
+  config.checkOtherSpell = not config.checkOtherSpell
+  widget:setChecked(config.checkOtherSpell)
+  saveConfig()
+end
+sioInterface.checkOtherSpell:setChecked(config.checkOtherSpell)
+
+sioInterface.otherSpell.onTextChange = function(widget, text)
+  config.otherSpell = text
+  saveConfig()
+end
+sioInterface.otherSpell:setText(config.otherSpell)
+
+sioInterface.potionID.onItemChange = function(widget)
+  config.potionID = getBotItemId(widget)
+  saveConfig()
+end
+sioInterface.potionID:setItemId(config.potionID)
+
+sioInterface.potionMPID.onItemChange = function(widget)
+  config.potionMPID = getBotItemId(widget)
+  saveConfig()
+end
+sioInterface.potionMPID:setItemId(config.potionMPID)
+
+local toggles = {"friendList", "partyMembers", "guildMembers", "listPrio", "cureMPFriend"}
+for _, id in ipairs(toggles) do
+  sioInterface[id].onClick = function(widget)
+    config[id] = not config[id]
+    widget:setOn(config[id])
+    saveConfig()
+  end
+  sioInterface[id]:setOn(config[id])
+end
+
+saveConfig()
+
+-----------------------------
+-- MACRO DE PEDIR MP
+-----------------------------
+macro(200, function()
+  if not healFriendStorage[switchSio] or not healFriendStorage[switchSio].enabled then
+    return
+  end
+  if not config or not config.cureMPFriend then
+    return
+  end
+
+  local manaPercent = config.percentMp
+  local chatSelecionado = config.selectChat
+  if manapercent() <= manaPercent then
+    if chatSelecionado == "Default" then
+      say("p")
+      delay(4000)
+    elseif chatSelecionado == "Party Channel" then
+      sayChannel(1, "p")
+      delay(4000)
+    end
+  end
+end)
+
+macro(100, function()
+  if pauseFriendHeal and pauseFriendHeal > now then return end
+  if not healFriendStorage[switchSio] or not healFriendStorage[switchSio].enabled then return end
+
+  local player = g_game.getLocalPlayer()
+  if not player then return end
+
+  local spectators = getSpectators()
+  if not spectators then return end
+
+  local targets = {}
+  local minHp = config.percentHp or 80
+
+  -- =========================
+  -- COLETA PLAYERS
+  -- =========================
+  for _, creature in ipairs(spectators) do
+    if creature:isPlayer() and creature:getName() ~= player:getName() then
+      local hp = 100
+      if creature.getHealthPercent then
+        hp = creature:getHealthPercent()
+      end
+
+      if hp and hp > 0 and hp <= minHp then
+        table.insert(targets, {
+          creature = creature,
+          hp = hp
+        })
+      end
+    end
+  end
+
+  if #targets == 0 then return end
+
+  -- =========================
+  -- FILTRO (SAFE)
+  -- =========================
+  local function isFriendName(n)
+    if storage.playerList and type(storage.playerList.friendList) == "table" then
+      for _, fName in ipairs(storage.playerList.friendList) do
+        if lowerTrim(fName) == lowerTrim(n) then return true end
+      end
+    end
+    return false
+  end
+
+  local function canHeal(creature)
+    local name = creature:getName()
+
+    if config.friendList and type(isFriend) == "function" and isFriend(name) then return true end
+    if config.friendList and isFriendName(name) then return true end
+    if config.partyMembers and creature.isPartyMember and creature:isPartyMember() then return true end
+    if config.guildMembers and creature.getEmblem then
+      local emblem = creature:getEmblem()
+      if emblem == 1 or emblem == 4 then return true end
+    end
+
+    if not config.friendList and not config.partyMembers and not config.guildMembers then
+      return true
+    end
+
+    return false
+  end
+
+  local valid = {}
+  for _, t in ipairs(targets) do
+    if canHeal(t.creature) then
+      table.insert(valid, t)
+    end
+  end
+
+  if #valid == 0 then return end
+
+  -- =========================
+  -- PRIORIDADE
+  -- =========================
+  local rankMap = {}
+  if config.listPrio then
+    local order = config.prioOrder or { "Knight", "Paladin", "Monk", "Mage" }
+    for i = 1, #order do
+      rankMap[order[i]:upper()] = i
+    end
+  end
+
+  local function getVocCodeFromCheckText(creature)
+    if not creature or not creature.getText then return nil end
+    local t = creature:getText() or ""
+    if t == "" then return nil end
+
+    local code = t:match("%d+%s*(%u%u)")
+    if not code then code = t:match("(%u%u)") end
+    return code
+  end
+
+  local function vocGroupFromCode(code)
+    if code == "EK" then return "KNIGHT" end
+    if code == "RP" then return "PALADIN" end
+    if code == "EM" then return "MONK" end
+    if code == "MS" or code == "ED" then return "MAGE" end
+    return nil
+  end
+
+  local function getPrioRankForCreature(creature)
+    local code = getVocCodeFromCheckText(creature)
+    local group = vocGroupFromCode(code)
+    if not group then return 9999 end
+    return rankMap[group] or 9999
+  end
+
+  table.sort(valid, function(a, b)
+    if not config.listPrio then
+      return a.hp < b.hp
+    end
+
+    local pa = getPrioRankForCreature(a.creature)
+    local pb = getPrioRankForCreature(b.creature)
+
+    if pa == pb then
+      return a.hp < b.hp
+    end
+
+    return pa < pb
+  end)
+
+  local target = valid[1]
+  if not target then return end
+
+  local t = target.creature
+  local tName = t:getName()
+
+  -- =========================
+  -- SPELL HEAL
+  -- =========================
+  if config.useSpell then
+    if config.exuraSio then
+      if (not pauseFriendHeal or pauseFriendHeal <= now) then
+        say('exura sio "' .. tName)
+      end
+      delay(500)
+      return
+    end
+
+    if config.masRes then
+      if (not pauseFriendHeal or pauseFriendHeal <= now) then
+        say("exura gran mas res")
+      end
+      delay(500)
+      return
+    end
+
+    if config.checkOtherSpell and trimText(config.otherSpell) ~= "" then
+      if (not pauseFriendHeal or pauseFriendHeal <= now) then
+        say(config.otherSpell .. ' "' .. tName)
+      end
+      delay(500)
+      return
+    end
+  end
+
+  -- =========================
+  -- POTION HEAL
+  -- =========================
+  if config.usePotion and config.potionID and config.potionID > 0 then
+    local dist = getDistanceBetween(player:getPosition(), t:getPosition())
+
+    if dist <= (config.distUsePot or 3) then
+      if g_game.useInventoryItemWith then
+        g_game.useInventoryItemWith(config.potionID, t)
+      else
+        useWith(config.potionID, t)
+      end
+      return
+    end
+  end
+end)
+
+-- =========================================
+-- LISTENER: DAR MANA PARA QUEM PEDIR "P"
+-- =========================================
+onTalk(function(name, level, mode, text, channelId, pos)
+  text = lowerTrim(text)
+  if text ~= "p" then return end
+
+  if not healFriendStorage[switchSio] or not healFriendStorage[switchSio].enabled then
+    return
+  end
+
+  local mpId = config.potionMPID
+  if not mpId or mpId <= 100 then
+    return
+  end
+
+  local player = g_game.getLocalPlayer()
+  if not player or name == player:getName() then return end
+
+  local targetCreature = nil
+  for _, creature in ipairs(getSpectators()) do
+    if creature:isPlayer() and lowerTrim(creature:getName()) == lowerTrim(name) then
+      targetCreature = creature
+      break
+    end
+  end
+
+  if not targetCreature then
+    return
+  end
+
+  local dist = getDistanceBetween(player:getPosition(), targetCreature:getPosition())
+  if dist > 1 then
+    return
+  end
+
+  local function isFriendName(n)
+    if storage.playerList and type(storage.playerList.friendList) == "table" then
+      for _, fName in ipairs(storage.playerList.friendList) do
+        if lowerTrim(fName) == lowerTrim(n) then return true end
+      end
+    end
+    return false
+  end
+
+  local validTarget = false
+  if config.friendList and type(isFriend) == "function" and isFriend(name) then validTarget = true end
+  if config.friendList and isFriendName(name) then validTarget = true end
+  if config.partyMembers and targetCreature.isPartyMember and targetCreature:isPartyMember() then validTarget = true end
+
+  if config.guildMembers and targetCreature.getEmblem then
+    local emblem = targetCreature:getEmblem()
+    if emblem == 1 or emblem == 4 then
+      validTarget = true
+    end
+  end
+
+  if validTarget then
+
+    schedule(50, function()
+      if g_game.useInventoryItemWith then
+        g_game.useInventoryItemWith(mpId, targetCreature)
+      else
+        useWith(mpId, targetCreature)
+      end
+    end)
+  else
+  end
+end)
+end)
+
+lnsRunBlock("CONTROL_FOLLOW", function()
+  local PANEL_NAME = "lnsFollow"
+local FOLLOW_SWITCH_ID = "followButton"
+
+local category = "lns"
+local MW_RUNE_ID = 3180
+local WG_RUNE_ID = 3156
+local SD_RUNE_ID = 3155
+local ATTACKBOT_SWITCH_ID = "comboButton"
+local MINI_WINDOW_NAME = "ingameScriptWindow"
+local HOLD_STORAGE_KEY = "lnsLeaderHoldMwWg"
+
+local leaderCommandDelay = 200
+local lastLeaderCommand = 0
+local sendLeaderCommand
+
+pausandoCombo = 0
+
+storage = storage or {}
+storage.LNSControlFollowGlobal = storage.LNSControlFollowGlobal or {}
+
+local controlFollowStorage = storage.LNSControlFollowGlobal
+
+local function saveLeaderControl()
+  storage.LNSControlFollowGlobal = controlFollowStorage
+end
+
+controlFollowStorage[PANEL_NAME] = controlFollowStorage[PANEL_NAME] or {
+  texts = {},
+  switches = {}
+}
+
+controlFollowStorage.follow2Panel = controlFollowStorage.follow2Panel or {
+  leaderName = "",
+  followerName = "",
+  ueSpell = ""
+}
+
+controlFollowStorage[HOLD_STORAGE_KEY] = controlFollowStorage[HOLD_STORAGE_KEY] or {
+  enabled = { mw = false, wg = false },
+  marks = {}
+}
+
+controlFollowStorage[MINI_WINDOW_NAME] = controlFollowStorage[MINI_WINDOW_NAME] or {}
+controlFollowStorage[ATTACKBOT_SWITCH_ID] = controlFollowStorage[ATTACKBOT_SWITCH_ID] or { enabled = false }
+controlFollowStorage[FOLLOW_SWITCH_ID] = controlFollowStorage[FOLLOW_SWITCH_ID] or { enabled = false }
+
+if modules.game_interface and modules.game_interface.removeMenuHook then
+  modules.game_interface.removeMenuHook(category)
+end
+
+local function normalizeText(s)
+  s = tostring(s or "")
+  s = s:gsub("^%s+", ""):gsub("%s+$", "")
+  return s
+end
+
+local function lowerText(s)
+  return normalizeText(s):lower()
+end
+
+local function getPanelDb()
+  controlFollowStorage[PANEL_NAME] = controlFollowStorage[PANEL_NAME] or {}
+  controlFollowStorage[PANEL_NAME].texts = controlFollowStorage[PANEL_NAME].texts or {}
+  controlFollowStorage[PANEL_NAME].switches = controlFollowStorage[PANEL_NAME].switches or {}
+  return controlFollowStorage[PANEL_NAME]
+end
+
+local function getFollow2Db()
+  controlFollowStorage.follow2Panel = controlFollowStorage.follow2Panel or {}
+  return controlFollowStorage.follow2Panel
+end
+
+local function getLeaderNameFromFollow2()
+  return lowerText(getFollow2Db().leaderName or "")
+end
+
+local function getUeSpellFromFollow2()
+  return normalizeText(getFollow2Db().ueSpell or "")
+end
+
+local function findWidgetById(id)
+  local root = g_ui and g_ui.getRootWidget and g_ui.getRootWidget()
+  if not root or not root.recursiveGetChildById then return nil end
+  return root:recursiveGetChildById(id)
+end
+
+local function getHookPos(pos, lookThing, useThing, creatureThing)
+  if pos and pos.x and pos.y and pos.z then return pos end
+
+  for _, thing in ipairs({lookThing, useThing, creatureThing}) do
+    if thing and thing.getPosition then
+      local p = thing:getPosition()
+      if p and p.x and p.y and p.z then return p end
+    end
+  end
+
+  return nil
+end
+
+local function parseCommandPos(text, prefix)
+  local pattern = "^" .. prefix .. "%s*:%s*(%-?%d+)%s*,%s*(%-?%d+)%s*,%s*(%-?%d+)%s*$"
+  local x, y, z = normalizeText(text):match(pattern)
+  if not x then return nil end
+  return {x = tonumber(x), y = tonumber(y), z = tonumber(z)}
+end
+
+local function sayHookPos(prefix, pos, lookThing, useThing, creatureThing)
+  local p = getHookPos(pos, lookThing, useThing, creatureThing)
+  if not p then return end
+
+  local command = string.format("%s: %d,%d,%d", prefix, p.x, p.y, p.z)
+
+  if sendLeaderCommand then
+    sendLeaderCommand(command)
+  else
+    sayChannel(1, command)
+  end
+end
+
+local function safeUseWithItem(itemId, target)
+  if not itemId or not target then return false end
+
+  local item = findItem(itemId)
+  if not item then return false end
+
+  return useWith(item, target) and true or false
+end
+
+local function useRuneOnPos(itemId, pos)
+  if not itemId or not pos then return false end
+
+  local tile = g_map.getTile(pos)
+  if not tile then return false end
+
+  local topThing = tile:getTopUseThing()
+  if not topThing then return false end
+
+  return safeUseWithItem(itemId, topThing)
+end
+
+local function syncSwitchVisual(panelGlobal, switchId, state)
+  if panelGlobal and panelGlobal.title and panelGlobal.title.setOn then
+    panelGlobal.title:setOn(state)
+    return
+  end
+
+  local panel = findWidgetById(switchId)
+  if not panel then return end
+
+  local title = panel.getChildById and panel:getChildById("title")
+  if not title then return end
+
+  title:setOn(state)
+end
+
+local function setAttackBotState(state)
+  state = state == true
+
+  controlFollowStorage[ATTACKBOT_SWITCH_ID] = controlFollowStorage[ATTACKBOT_SWITCH_ID] or {}
+  controlFollowStorage[ATTACKBOT_SWITCH_ID].enabled = state
+  saveLeaderControl()
+
+  if comboButton and comboButton.title and comboButton.title.setOn then
+    comboButton.title:setOn(state)
+  else
+    syncSwitchVisual(comboButton, ATTACKBOT_SWITCH_ID, state)
+  end
+end
+
+local function setFollowState(state)
+  state = state == true
+
+  controlFollowStorage.follow2Panel = controlFollowStorage.follow2Panel or {}
+  controlFollowStorage.follow2Panel.enabled = state
+
+  controlFollowStorage[FOLLOW_SWITCH_ID] = controlFollowStorage[FOLLOW_SWITCH_ID] or {}
+  controlFollowStorage[FOLLOW_SWITCH_ID].enabled = state
+
+  if not state then
+    g_game.cancelFollow()
+
+    if g_game.cancelAttack then
+      -- não cancela ataque, só follow
+    end
+
+    if player and player.stopAutoWalk then
+      pcall(function() player:stopAutoWalk() end)
+    end
+  end
+
+  if followButton and followButton.title and followButton.title.setOn then
+    followButton.title:setOn(state)
+  else
+    syncSwitchVisual(followButton, FOLLOW_SWITCH_ID, state)
+  end
+
+  saveLeaderControl()
+end
+
+local function getHoldDb()
+  controlFollowStorage[HOLD_STORAGE_KEY] = controlFollowStorage[HOLD_STORAGE_KEY] or {}
+  controlFollowStorage[HOLD_STORAGE_KEY].enabled = controlFollowStorage[HOLD_STORAGE_KEY].enabled or { mw = false, wg = false }
+  controlFollowStorage[HOLD_STORAGE_KEY].marks = controlFollowStorage[HOLD_STORAGE_KEY].marks or {}
+  return controlFollowStorage[HOLD_STORAGE_KEY]
+end
+
+local function holdPosKey(pos)
+  return string.format("%d,%d,%d", pos.x, pos.y, pos.z)
+end
+
+local function splitHoldPosKey(key)
+  local x, y, z = tostring(key):match("^(%-?%d+),(%-?%d+),(%-?%d+)$")
+  if not x then return nil end
+  return {x = tonumber(x), y = tonumber(y), z = tonumber(z)}
+end
+
+local function isHoldMwEnabled()
+  return getHoldDb().enabled.mw == true
+end
+
+local function isHoldWgEnabled()
+  return getHoldDb().enabled.wg == true
+end
+
+local function addHoldMark(pos, text)
+  if not pos or not text then return end
+  getHoldDb().marks[holdPosKey(pos)] = text
+  saveLeaderControl()
+end
+
+local function clearHoldMarksByText(text)
+  local db = getHoldDb()
+  local keep = {}
+
+  for key, value in pairs(db.marks or {}) do
+    local pos = splitHoldPosKey(key)
+    local tile = pos and g_map.getTile(pos)
+
+    if value == text then
+      if tile and tile.getText and tile:getText() == text then
+        pcall(function()
+          tile:setText("")
+        end)
+      end
+    else
+      keep[key] = value
+    end
+  end
+
+  db.marks = keep
+  controlFollowStorage[HOLD_STORAGE_KEY].marks = keep
+  saveLeaderControl()
+end
+
+local function setHoldMwState(state)
+  local db = getHoldDb()
+  db.enabled.mw = state == true
+
+  if db.enabled.mw ~= true then
+    clearHoldMarksByText("HOLD MW")
+    db = getHoldDb()
+    db.enabled.mw = false
+    db.marks = db.marks or {}
+  end
+
+  saveLeaderControl()
+end
+
+local function setHoldWgState(state)
+  local db = getHoldDb()
+  db.enabled.wg = state == true
+
+  if db.enabled.wg ~= true then
+    clearHoldMarksByText("HOLD WG")
+    db = getHoldDb()
+    db.enabled.wg = false
+    db.marks = db.marks or {}
+  end
+
+  saveLeaderControl()
+end
+
+local function tileHasHoldField(tile)
+  if not tile then return false end
+
+  local items = tile:getItems()
+  if not items then return false end
+
+  for i = 1, #items do
+    local item = items[i]
+    if item and item.getId then
+      local id = item:getId()
+      if id == 2129 or id == 2130 then
+        return true
+      end
+    end
+  end
+
+  return false
+end
+
+local function canUseHoldOnTile(tile)
+  if not tile then return false end
+  if isInPz() then return false end
+  if not tile:canShoot() then return false end
+  if not tile:isWalkable() then return false end
+
+  local top = tile:getTopUseThing()
+  if not top then return false end
+  if top:getId() == 2130 then return false end
+
+  local ppos = player and player:getPosition()
+  local tpos = tile:getPosition()
+  if not ppos or not tpos then return false end
+  if ppos.z ~= tpos.z then return false end
+  if math.abs(ppos.x - tpos.x) >= 8 or math.abs(ppos.y - tpos.y) >= 6 then return false end
+
+  return true
+end
+
+local HOLD_CAST_COOLDOWN_MS = 200
+local HOLD_TILE_COOLDOWN_MS = 200
+local HOLD_FAIL_COOLDOWN_MS = 100
+local HOLD_REMOVE_DEBOUNCE_MS = 170
+local lastHoldCastAt = 0
+local lastHoldCastByTile = {}
+
+local function tryUseHold(tile, holdText)
+  if not tile or not holdText then return false end
+
+  local runeId = nil
+
+  if holdText == "HOLD MW" then
+    if not isHoldMwEnabled() then return false end
+    runeId = MW_RUNE_ID
+  elseif holdText == "HOLD WG" then
+    if not isHoldWgEnabled() then return false end
+    runeId = WG_RUNE_ID
+  else
+    return false
+  end
+
+  if tileHasHoldField(tile) then return false end
+  if not canUseHoldOnTile(tile) then return false end
+  if now - lastHoldCastAt < HOLD_CAST_COOLDOWN_MS then return false end
+
+  local pos = tile:getPosition()
+  local key = holdPosKey(pos)
+  local lastTileCast = lastHoldCastByTile[key] or 0
+
+  if lastTileCast > now then return false end
+  if now - lastTileCast < HOLD_TILE_COOLDOWN_MS then return false end
+
+  local used = safeUseWithItem(runeId, tile:getTopUseThing())
+  lastHoldCastAt = now
+
+  if used then
+    lastHoldCastByTile[key] = now
+    return true
+  end
+
+  lastHoldCastByTile[key] = now + HOLD_FAIL_COOLDOWN_MS
+  return false
+end
+
+--==================================================
+-- COMBO SIMPLES
+-- pause runtime: pausandoCombo = now + 3000
+--==================================================
+
+local comboExecutando = false
+
+local function setComboPause(ms)
+  pausandoCombo = now + (ms or 3000)
+end
+
+local function clearComboPause()
+  pausandoCombo = 0
+end
+
+local function triggerComboUE()
+  if comboExecutando then return false end
+
+  local ueSpell = getUeSpellFromFollow2()
+  if ueSpell == "" then return false end
+
+  comboExecutando = true
+  pausandoCombo = now + 3000
+
+  if type(startComboCountdown) == "function" then
+    startComboCountdown("ue")
+  end
+
+  schedule(3000, function()
+    local spell = getUeSpellFromFollow2()
+
+    if spell ~= "" then
+      say(spell)
+    end
+
+    schedule(300, function()
+      comboExecutando = false
+      clearComboPause()
+    end)
+  end)
+
+  return true
+end
+
+local function triggerComboSD()
+  if comboExecutando then return false end
+
+  local currentTarget = g_game.getAttackingCreature()
+  if not currentTarget then return false end
+  if not findItem(SD_RUNE_ID) then return false end
+
+  local targetId = currentTarget:getId()
+
+  comboExecutando = true
+  pausandoCombo = now + 3000
+
+  if type(startComboCountdown) == "function" then
+    startComboCountdown("sd")
+  end
+
+  schedule(3000, function()
+    if not findItem(SD_RUNE_ID) then
+      comboExecutando = false
+      clearComboPause()
+      return
+    end
+
+    local target = getCreatureById(targetId) or g_game.getAttackingCreature()
+    if target then
+      useWith(SD_RUNE_ID, target)
+    end
+
+    schedule(300, function()
+      comboExecutando = false
+      clearComboPause()
+    end)
+  end)
+
+  return true
+end
+
+local function safeNpcSay(text)
+  text = normalizeText(text)
+  if text == "" then return end
+
+  if NPC and NPC.say then
+    NPC.say(text)
+    return
+  end
+
+  if npc and npc.say then
+    npc.say(text)
+    return
+  end
+
+  say(text)
+end
+
+local function npcSaySequence(words, delayMs)
+  if type(words) ~= "table" then return false end
+
+  delayMs = tonumber(delayMs) or 500
+  if delayMs < 500 then delayMs = 500 end
+
+  for i = 1, #words do
+    local word = normalizeText(words[i])
+
+    if word ~= "" then
+      schedule((i - 1) * delayMs, function()
+        safeNpcSay(word)
+      end)
+    end
+  end
+
+  return true
+end
+
+local function formatTaskCommand(text)
+  text = lowerText(text)
+  if text == "" then return "" end
+
+  text = text:gsub("%s+", " ")
+
+  if not text:match("s$") then
+    text = text .. "s"
+  end
+
+  text = text:gsub("(%a)([%w%-']*)", function(first, rest)
+    return first:upper() .. rest
+  end)
+
+  return text
+end
+
+local function executeLeaderCommand(text)
+  local msg = normalizeText(text)
+  local msgLower = msg:lower()
+
+  if msgLower == "set: attackbot [on]" then
+    setAttackBotState(true)
+    return true
+  end
+
+  if msgLower == "set: attackbot [off]" then
+    setAttackBotState(false)
+    return true
+  end
+
+  if msgLower == "set: follow [on]" then
+    setFollowState(true)
+    return true
+  end
+
+  if msgLower == "set: follow [off]" then
+    setFollowState(false)
+    return true
+  end
+
+  if msgLower == "set: targetbot [on]" then
+    if TargetBot and TargetBot.setOn then TargetBot.setOn() end
+    return true
+  end
+
+  if msgLower == "set: targetbot [off]" then
+    if TargetBot and TargetBot.setOff then TargetBot.setOff() end
+    return true
+  end
+
+  if msgLower == "set: cavebot [on]" then
+    if CaveBot and CaveBot.setOn then CaveBot.setOn() end
+    return true
+  end
+
+  if msgLower == "set: cavebot [off]" then
+    if CaveBot and CaveBot.setOff then CaveBot.setOff() end
+    return true
+  end
+
+  if msgLower == "set: combo ue [on]" then
+    triggerComboUE()
+    return true
+  end
+
+  if msgLower == "set: combo sd [on]" then
+    triggerComboSD()
+    return true
+  end
+
+  if msgLower == "set: stop attack" then
+    g_game.cancelAttack()
+    oldTarget = nil
+    targetID = nil
+    return true
+  end
+
+  if msgLower == "set: hold mw [on]" or msgLower == "hold mw on" then
+    setHoldMwState(true)
+    return true
+  end
+
+  if msgLower == "set: hold mw [off]" or msgLower == "hold mw off" then
+    setHoldMwState(false)
+    return true
+  end
+
+  if msgLower == "set: hold wg [on]" or msgLower == "hold wg on" then
+    setHoldWgState(true)
+    return true
+  end
+
+  if msgLower == "set: hold wg [off]" or msgLower == "hold wg off" then
+    setHoldWgState(false)
+    return true
+  end
+
+  if msgLower == "report task" then
+    npcSaySequence({"hi", "report", "yes", "bye"}, 500)
+    return true
+  end
+
+  local taskName = msg:match("^[Tt][Aa][Ss][Kk]%s*:%s*(.+)$")
+  if taskName then
+    taskName = lowerText(taskName)
+
+    if taskName ~= "" then
+      npcSaySequence({"hi", taskName, "yes", "bye"}, 500)
+    end
+
+    return true
+  end
+
+  local movePos = parseCommandPos(msg, "MOVE POS")
+  if movePos then
+    if movePos.z ~= posz() then return true end
+    autoWalk(movePos, 100, {ignoreNonPathable = true, ignoreCreatures = true, precision = 1})
+    return true
+  end
+
+  local mwPos = parseCommandPos(msg, "MW IN")
+  if mwPos then
+    useRuneOnPos(MW_RUNE_ID, mwPos)
+    return true
+  end
+
+  local wgPos = parseCommandPos(msg, "WG IN")
+  if wgPos then
+    useRuneOnPos(WG_RUNE_ID, wgPos)
+    return true
+  end
+
+  local travelCity = msg:match("Travel to:%s*(.+)")
+  if travelCity then
+    travelCity = normalizeText(travelCity)
+
+    schedule(200, function()
+      NPC.say("hi")
+      schedule(200, function()
+        NPC.say(travelCity)
+        schedule(200, function()
+          NPC.say("yes")
+          schedule(200, function()
+            NPC.say("yes")
+          end)
+        end)
+      end)
+    end)
+
+    return true
+  end
+
+  return false
+end
+
+sendLeaderCommand = function(text, runLocal)
+  local msg = normalizeText(text)
+  if msg == "" then return false end
+
+  if runLocal ~= false then
+    executeLeaderCommand(msg)
+
+    -- evita executar duas vezes no client que enviou, caso o onTalk também capture a própria fala
+    lastLeaderCommand = now + leaderCommandDelay
+  end
+
+  sayChannel(1, msg)
+  return true
+end
+
+local hooks = {
+  {label = "LNS | MC Use Here", prefix = "USE TO"},
+  {label = "LNS | Move Pos", prefix = "MOVE POS"},
+  {label = "LNS | MC Use MW", prefix = "MW IN"},
+  {label = "LNS | MC Use WG", prefix = "WG IN"},
+}
+
+for i = 1, #hooks do
+  local hook = hooks[i]
+  modules.game_interface.addMenuHook(category, hook.label, function(pos, lookThing, useThing, creatureThing)
+    sayHookPos(hook.prefix, pos, lookThing, useThing, creatureThing)
+  end, function() return true end)
+end
+
+--==================================================
+-- MC LÊ COMANDOS DO LEADER
+-- se o Leader Name estiver vazio, aceita somente textos com cara de comando
+-- isso evita o bug de MC não executar quando o campo de leader não está preenchido
+--==================================================
+
+local function isControlCommandText(text)
+  local msg = normalizeText(text)
+  if msg == "" then return false end
+
+  local low = msg:lower()
+
+  if low:match("^set:%s*") then return true end
+  if low == "report task" then return true end
+  if low:match("^task%s*:") then return true end
+  if low:match("^move pos%s*:") then return true end
+  if low:match("^mw in%s*:") then return true end
+  if low:match("^wg in%s*:") then return true end
+  if msg:match("^[Tt]ravel to:%s*") then return true end
+
+  return false
+end
+
+local function canReadLeaderCommand(name, text)
+  if not isControlCommandText(text) then return false end
+
+  local leaderName = getLeaderNameFromFollow2()
+
+  -- se não configurou leader no follow, ainda assim os MCs vão obedecer os comandos do painel
+  if leaderName == "" then return true end
+
+  return lowerText(name) == leaderName
+end
+
+onTalk(function(name, level, mode, text, channelId, pos)
+  -- alguns OTCs retornam o default/sayChannel como 1, outros como 0/nil
+  if channelId ~= 1 and channelId ~= 0 and channelId ~= nil then return end
+  if not canReadLeaderCommand(name, text) then return end
+
+  if now < lastLeaderCommand then return end
+  lastLeaderCommand = now + leaderCommandDelay
+
+  executeLeaderCommand(text)
+end)
+
+onUseWith(function(pos, itemId, target)
+  if not target or not target.getPosition then return end
+
+  if itemId == MW_RUNE_ID then
+    if not isHoldMwEnabled() then return end
+
+    local tpos = target:getPosition()
+    if not tpos then return end
+
+    local tile = g_map.getTile(tpos)
+    if not tile then return end
+
+    tile:setText("HOLD MW")
+    addHoldMark(tpos, "HOLD MW")
+    return
+  end
+
+  if itemId == WG_RUNE_ID then
+    if not isHoldWgEnabled() then return end
+
+    local tpos = target:getPosition()
+    if not tpos then return end
+
+    local tile = g_map.getTile(tpos)
+    if not tile then return end
+
+    tile:setText("HOLD WG")
+    addHoldMark(tpos, "HOLD WG")
+    return
+  end
+end)
+
+onRemoveThing(function(tile, thing)
+  if not tile or not thing or not thing.getId then return end
+
+  local id = thing:getId()
+  if id ~= 2129 and id ~= 2130 then return end
+
+  local txt = tile:getText()
+  if txt ~= "HOLD MW" and txt ~= "HOLD WG" then return end
+
+  local pos = tile:getPosition()
+  if not pos then return end
+
+  local key = holdPosKey(pos)
+  local current = lastHoldCastByTile[key] or 0
+  lastHoldCastByTile[key] = math.max(current, now + HOLD_REMOVE_DEBOUNCE_MS)
+end)
+
+macro(20, function()
+  local db = getHoldDb()
+
+  for key, holdText in pairs(db.marks or {}) do
+    local enabled = false
+
+    if holdText == "HOLD MW" then
+      enabled = isHoldMwEnabled()
+    elseif holdText == "HOLD WG" then
+      enabled = isHoldWgEnabled()
+    end
+
+    if enabled then
+      local pos = splitHoldPosKey(key)
+      if pos then
+        local tile = g_map.getTile(pos)
+        if tile then
+          if tile:getText() ~= holdText then
+            tile:setText(holdText)
+          end
+
+          if tryUseHold(tile, holdText) then
+            return
+          end
+        end
+      end
+    end
+  end
+end)
+
+toolsScripts = setupUI([[
+MiniWindow
+  id: toolsScripts
+  text: Leader Control
+  height: 290
+  width: 175
+  icon: /images/topbuttons/combatcontrols
+  icon-size: 15 15
+
+  Panel
+    id: panelScripts
+    anchors.fill: parent
+    margin-top: 20
+    margin-left: 5
+    margin-right: 5
+    margin-bottom: 5
+    layout:
+      type: verticalBox
+]], g_ui.getRootWidget())
+toolsScripts:hide()
+
+g_ui.loadUIFromString([[
+LeaderRow < Panel
+  height: 22
+  margin-top: 2
+
+  HorizontalSeparator
+    anchors.top: parent.top
+    anchors.bottom: parent.bottom
+    anchors.right: parent.right
+    anchors.left: parent.left
+
+  Label
+    id: label
+    anchors.left: parent.left
+    anchors.top: prev.top
+    margin-top: 5
+    width: 110
+    color: white
+    font: verdana-11px-rounded
+    text: Command
+
+  Button
+    id: onBtn
+    anchors.right: offBtn.left
+    anchors.verticalCenter: parent.verticalCenter
+    margin-right: 1
+    width: 40
+    height: 18
+    font: verdana-11px-rounded
+    text: ON
+    color: #98FB98
+
+  Button
+    id: offBtn
+    anchors.right: parent.right
+    anchors.verticalCenter: parent.verticalCenter
+    width: 40
+    height: 18
+    font: verdana-11px-rounded
+    text: OFF
+    color: #CD5C5C
+
+TaskCommandRow < Panel
+  height: 24
+  margin-top: 0
+
+  BotTextEdit
+    id: taskText
+    anchors.left: parent.left
+    anchors.right: sendBtn.left
+    anchors.verticalCenter: parent.verticalCenter
+    margin-right: 4
+    height: 19
+    font: verdana-11px-rounded
+    color: white
+
+  Button
+    id: sendBtn
+    anchors.right: parent.right
+    anchors.verticalCenter: parent.verticalCenter
+    width: 45
+    height: 18
+    font: verdana-11px-rounded
+    text: SEND
+    color: #98FB98
+    tooltip: Enviar Nome da Task para os Mcs.
+]])
+
+local saved = controlFollowStorage[MINI_WINDOW_NAME]
+saved.minimized = saved.minimized == true
+
+if saved.x and saved.y then
+  toolsScripts:setX(saved.x)
+  toolsScripts:setY(saved.y)
+end
+
+local normalHeight = math.max(tonumber(saved.normalHeight) or 300, 300)
+local minimizedHeight = 25
+
+local function setLeaderWindowMinimized(state)
+  state = state == true
+
+  saved.minimized = state
+  saved.normalHeight = normalHeight
+
+  if state then
+    normalHeight = toolsScripts:getHeight() > minimizedHeight and toolsScripts:getHeight() or normalHeight
+    saved.normalHeight = normalHeight
+    toolsScripts.panelScripts:hide()
+    toolsScripts:setHeight(minimizedHeight)
+  else
+    toolsScripts:setHeight(math.max(saved.normalHeight or 300, 300))
+    toolsScripts.panelScripts:show()
+  end
+
+  saveLeaderControl()
+end
+
+toolsScripts.onGeometryChange = function(widget, oldRect, newRect)
+  if oldRect.width == 0 and oldRect.height == 0 then return end
+
+  saved.x = widget:getX()
+  saved.y = widget:getY()
+
+  if not saved.minimized then
+    normalHeight = widget:getHeight()
+    saved.normalHeight = normalHeight
+  end
+
+  saveLeaderControl()
+end
+
+schedule(100, function()
+  setLeaderWindowMinimized(saved.minimized)
+end)
+
+local scrollBar = toolsScripts:getChildById("miniwindowScrollBar")
+if scrollBar then scrollBar:hide() end
+
+toolsScripts.closeButton.onClick = function()
+  toolsScripts:hide()
+end
+
+toolsScripts.minimizeButton:setMarginLeft(23)
+toolsScripts.minimizeButton.onClick = function()
+  setLeaderWindowMinimized(not saved.minimized)
+end
+
+toolsScripts.lockButton:hide()
+
+local scriptsLeaderControl = toolsScripts.panelScripts
+
+local controls = {
+  {text = "AttackBot", on = "set: AttackBot [ON]", off = "set: AttackBot [OFF]"},
+  {text = "Follow",    on = "set: Follow [ON]",    off = "set: Follow [OFF]"},
+  {text = "TargetBot", on = "set: TargetBot [ON]", off = "set: TargetBot [OFF]"},
+  {text = "CaveBot",   on = "set: CaveBot [ON]",   off = "set: CaveBot [OFF]"},
+  {text = "Hold MW",   on = "set: Hold MW [ON]",   off = "set: Hold MW [OFF]"},
+  {text = "Hold WG",   on = "set: Hold WG [ON]",   off = "set: Hold WG [OFF]"},
+  -- {text = "No Escape", on = "set: No Escape [ON]", off = "set: No Escape [OFF]"},
+}
+
+for i = 1, #controls do
+  local cfg = controls[i]
+  local row = g_ui.createWidget("LeaderRow", scriptsLeaderControl)
+
+  row.label:setText(cfg.text)
+
+  row.onBtn.onClick = function()
+    sendLeaderCommand(cfg.on)
+  end
+
+  row.offBtn.onClick = function()
+    sendLeaderCommand(cfg.off)
+  end
+end
+
+local comboCountdownWidget = nil
+local comboCountdownRunning = false
+
+local function getComboCountdownWidget()
+  if comboCountdownWidget and not comboCountdownWidget:isDestroyed() then
+    return comboCountdownWidget
+  end
+
+  local root = g_ui.getRootWidget()
+  if not root then return nil end
+
+  comboCountdownWidget = g_ui.loadUIFromString([[
+Panel
+  id: comboCountdownWidget
+  size: 90 21
+  anchors.centerIn: parent
+  margin-top: -180
+  margin-left: -17
+
+  Label
+    id: text
+    anchors.fill: parent
+    text-align: center
+    font: verdana-11px-rounded
+    color: #EEC900
+    text: COMBO
+]], root)
+
+  return comboCountdownWidget
+end
+
+local function showComboCountdownText(text, color)
+  local widget = getComboCountdownWidget()
+  if not widget then return end
+
+  local label = widget:getChildById("text")
+  if not label then return end
+
+  label:setText(text)
+
+  if color then
+    label:setColor(color)
+  end
+
+  widget:show()
+  widget:raise()
+end
+
+function startComboCountdown(kind)
+  if comboCountdownRunning then return end
+  comboCountdownRunning = true
+
+  local prefix = kind == "sd" and "EXEC SD: " or "EXEC UE: "
+  local lastText = kind == "sd" and "SD!!!" or "BUUUM!!!"
+  local color = kind == "sd" and "#AAAAAA" or "#EEC900"
+  local finalColor = kind == "sd" and "white" or "red"
+
+  showComboCountdownText(prefix .. "3", color)
+
+  schedule(1000, function()
+    showComboCountdownText(prefix .. "2", color)
+
+    schedule(1000, function()
+      showComboCountdownText(prefix .. "1", color)
+
+      schedule(1000, function()
+        showComboCountdownText(lastText, finalColor)
+
+        schedule(1200, function()
+          if comboCountdownWidget and not comboCountdownWidget:isDestroyed() then
+            comboCountdownWidget:hide()
+          end
+          comboCountdownRunning = false
+        end)
+      end)
+    end)
+  end)
+end
+
+local butSD = g_ui.createWidget("Button", scriptsLeaderControl)
+butSD:setText("Combo SD")
+butSD:setMarginTop(3)
+butSD.onClick = function()
+  sendLeaderCommand("set: Combo SD [ON]")
+  startComboCountdown("sd")
+end
+butSD:setHeight(20)
+butSD:setFont("verdana-11px-rounded")
+butSD:setColor("#696969")
+
+local butUE = g_ui.createWidget("Button", scriptsLeaderControl)
+butUE:setText("Combo UE")
+butUE.onClick = function()
+  sendLeaderCommand("set: Combo UE [ON]")
+  startComboCountdown("ue")
+end
+butUE:setHeight(20)
+butUE:setMarginTop(1)
+butUE:setFont("verdana-11px-rounded")
+butUE:setColor("#EEC900")
+
+local butCancelAtk = g_ui.createWidget("Button", scriptsLeaderControl)
+butCancelAtk:setText("Stop Attack")
+butCancelAtk.onClick = function()
+  sendLeaderCommand("set: Stop Attack")
+end
+butCancelAtk:setHeight(20)
+butCancelAtk:setMarginTop(1)
+butCancelAtk:setFont("verdana-11px-rounded")
+butCancelAtk:setColor("white")
+
+local taskSeparator = g_ui.createWidget("HorizontalSeparator", scriptsLeaderControl)
+taskSeparator:setHeight(2)
+taskSeparator:setMarginTop(5)
+taskSeparator:setMarginBottom(2)
+
+local taskRow = g_ui.createWidget("TaskCommandRow", scriptsLeaderControl)
+
+local taskPanelDb = getPanelDb()
+taskRow.taskText:setText(taskPanelDb.texts.taskCommand or "")
+
+taskRow.taskText.onTextChange = function(widget, text)
+  local db = getPanelDb()
+  db.texts.taskCommand = tostring(text or widget:getText() or "")
+  saveLeaderControl()
+end
+
+taskRow.sendBtn.onClick = function()
+  local taskName = formatTaskCommand(taskRow.taskText:getText())
+  if taskName == "" then return end
+
+  sendLeaderCommand("Task: " .. taskName)
+
+  taskRow.taskText:setText("")
+
+  local db = getPanelDb()
+  db.texts.taskCommand = ""
+  saveLeaderControl()
+end
+
+local butReportTask = g_ui.createWidget("Button", scriptsLeaderControl)
+butReportTask:setText("Report Task")
+butReportTask.onClick = function()
+  sendLeaderCommand("Report Task")
+end
+butReportTask:setHeight(19)
+butReportTask:setMarginTop(0)
+butReportTask:setFont("verdana-11px-rounded")
+butReportTask:setColor("#EEC900")
+
+end)
+
+lnsRunBlock("FOLLOW", function()
+  setDefaultTab("Main")
+
+PANEL_NAME = "lnsFollow"
+SWITCH_FOLLOW = "followButton"
+
+storage = storage or {}
+storage.LNSControlFollowGlobal = storage.LNSControlFollowGlobal or {}
+
+local followStorage = storage.LNSControlFollowGlobal
+
+local function trim(str)
+  str = tostring(str or "")
+  return str:match("^%s*(.-)%s*$")
+end
+
+local defaultStrings = {386, 12202, 21965, 21966}
+local defaultUse = {1948, 5542, 7771, 20475, 20573, 31262, 21297, 1968, 31130, 31129, 435, 21298}
+local defaultDoors = {8265, 7727, 5111, 8261, 8259, 5113, 1646, 9567, 9558, 5287, 5289, 6260, 22506, 5122, 1112, 7712, 7721, 7723, 6258}
+local defaultTeleports = {}
+
+local function copyList(t)
+  local r = {}
+  for i, v in ipairs(t or {}) do r[i] = v end
+  return r
+end
+
+local function applyDefaultIfEmpty(target, default)
+  if type(target) ~= "table" or #target == 0 then
+    return copyList(default)
+  end
+  return target
+end
+
+
+--==================================================
+-- SHARED FOLLOW IDS STORAGE
+-- Salva os IDs em: /bot/<config atual>/storage/shared/sharedFollow.json
+-- Assim todos os chars que usam a mesma config leem os mesmos IDs.
+--==================================================
+
+local SHARED_FOLLOW_DIR = nil
+local SHARED_FOLLOW_FILE = nil
+local SharedFollowState = {
+  loaded = false,
+  lastSync = 0,
+  lastJson = ""
+}
+
+local function getCurrentBotConfigName()
+  local panel = modules and modules.game_bot and modules.game_bot.contentsPanel
+  local cfg = panel and panel.config
+  local opt = cfg and cfg.getCurrentOption and cfg:getCurrentOption()
+
+  if opt and opt.text and tostring(opt.text) ~= "" then
+    return tostring(opt.text)
+  end
+
+  return nil
+end
+
+local function safeFollowDirExists(path)
+  if not g_resources then return false end
+
+  if g_resources.directoryExists then
+    local ok, exists = pcall(function()
+      return g_resources.directoryExists(path)
+    end)
+    if ok and exists == true then
+      return true
+    end
+  end
+
+  return false
+end
+
+local function safeFollowMakeDir(path)
+  if not path or path == "" then return false end
+  if safeFollowDirExists(path) then return true end
+  if not g_resources or not g_resources.makeDir then return false end
+
+  local ok = pcall(function()
+    g_resources.makeDir(path)
+  end)
+
+  if not ok then return false end
+  return safeFollowDirExists(path)
+end
+
+local function safeFollowFileExists(path)
+  if not path or path == "" then return false end
+  if not g_resources or not g_resources.fileExists then return false end
+
+  local ok, exists = pcall(function()
+    return g_resources.fileExists(path)
+  end)
+
+  return ok and exists == true
+end
+
+local function safeFollowWriteDefaultFile(path, defaultJson)
+  if not path or path == "" then return false end
+  if safeFollowFileExists(path) then return true end
+  if not g_resources or not g_resources.writeFileContents then return false end
+
+  local ok = pcall(function()
+    g_resources.writeFileContents(path, defaultJson or "{}")
+  end)
+
+  if not ok then return false end
+  return true
+end
+
+local function initSharedFollowPath()
+  if SHARED_FOLLOW_FILE then return true end
+
+  local configName = getCurrentBotConfigName()
+  if not configName or configName == "" then
+    return false
+  end
+
+  -- Cria primeiro a pasta pai, depois a pasta shared, e só então cria o .json.
+  -- Isso evita debug em client que não aceita read/write em arquivo inexistente.
+  local baseDir = "/bot/" .. configName .. "/storage/"
+  local sharedDir = baseDir .. "shared/"
+  local filePath = sharedDir .. "sharedFollow.json"
+
+  if not safeFollowMakeDir(baseDir) then return false end
+  if not safeFollowMakeDir(sharedDir) then return false end
+  if not safeFollowWriteDefaultFile(filePath, "{\n  \"strings\": [],\n  \"use\": [],\n  \"doorsClosed\": [],\n  \"teleports\": []\n}") then return false end
+
+  SHARED_FOLLOW_DIR = sharedDir
+  SHARED_FOLLOW_FILE = filePath
+  return true
+end
+
+local function normalizeIdList(list, defaultList)
+  local result = {}
+  local used = {}
+
+  if type(list) == "table" then
+    for _, entry in ipairs(list) do
+      local id = nil
+      if type(entry) == "table" then
+        id = tonumber(entry.id)
+      else
+        id = tonumber(entry)
+      end
+
+      if id and id > 0 and not used[id] then
+        table.insert(result, id)
+        used[id] = true
+      end
+    end
+  end
+
+  if #result == 0 and type(defaultList) == "table" then
+    for _, entry in ipairs(defaultList) do
+      local id = tonumber(entry)
+      if id and id > 0 and not used[id] then
+        table.insert(result, id)
+        used[id] = true
+      end
+    end
+  end
+
+  return result
+end
+
+local function encodeIdArray(list)
+  local result = {}
+  for _, id in ipairs(normalizeIdList(list, {})) do
+    table.insert(result, tostring(id))
+  end
+  return "[" .. table.concat(result, ",") .. "]"
+end
+
+local function encodeSharedFollow(data)
+  data = data or {}
+  return table.concat({
+    "{\n",
+    "  \"strings\": ", encodeIdArray(data.strings), ",\n",
+    "  \"use\": ", encodeIdArray(data.use), ",\n",
+    "  \"doorsClosed\": ", encodeIdArray(data.doorsClosed), ",\n",
+    "  \"teleports\": ", encodeIdArray(data.teleports), "\n",
+    "}"
+  })
+end
+
+local function decodeSharedArray(text, key)
+  local result = {}
+  text = tostring(text or "")
+  key = tostring(key or "")
+
+  local body = text:match('"' .. key .. '"%s*:%s*%[(.-)%]')
+  if not body then return result end
+
+  for value in body:gmatch("%-?%d+") do
+    local id = tonumber(value)
+    if id and id > 0 then
+      table.insert(result, id)
+    end
+  end
+
+  return result
+end
+
+local function decodeSharedFollow(text)
+  text = tostring(text or "")
+  return {
+    strings = decodeSharedArray(text, "strings"),
+    use = decodeSharedArray(text, "use"),
+    doorsClosed = decodeSharedArray(text, "doorsClosed"),
+    teleports = decodeSharedArray(text, "teleports")
+  }
+end
+
+local function readSharedFollowFile()
+  if not initSharedFollowPath() then return nil end
+  if not g_resources or not g_resources.readFileContents then return nil end
+
+  local ok, data = pcall(function()
+    return g_resources.readFileContents(SHARED_FOLLOW_FILE)
+  end)
+
+  if ok and type(data) == "string" and data ~= "" then
+    SharedFollowState.lastJson = data
+    return decodeSharedFollow(data)
+  end
+
+  return nil
+end
+
+local function writeSharedFollowFile(data)
+  if not initSharedFollowPath() then return false end
+  if not g_resources or not g_resources.writeFileContents then return false end
+
+  local jsonText = encodeSharedFollow(data)
+  local ok = pcall(function()
+    g_resources.writeFileContents(SHARED_FOLLOW_FILE, jsonText)
+  end)
+
+  if ok then
+    SharedFollowState.loaded = true
+    SharedFollowState.lastSync = now or 0
+    SharedFollowState.lastJson = jsonText
+  end
+
+  return ok == true
+end
+
+local function getSharedFollowFallback(localIds)
+  localIds = localIds or {}
+
+  return {
+    strings = normalizeIdList(localIds.strings, defaultStrings),
+    use = normalizeIdList(localIds.use, defaultUse),
+    doorsClosed = normalizeIdList(localIds.doorsClosed, defaultDoors),
+    teleports = normalizeIdList(localIds.teleports, defaultTeleports)
+  }
+end
+
+local function loadSharedFollowIds(localIds)
+  local shared = readSharedFollowFile()
+
+  if not shared then
+    shared = getSharedFollowFallback(localIds)
+    writeSharedFollowFile(shared)
+  else
+    shared.strings = normalizeIdList(shared.strings, defaultStrings)
+    shared.use = normalizeIdList(shared.use, defaultUse)
+    shared.doorsClosed = normalizeIdList(shared.doorsClosed, defaultDoors)
+    shared.teleports = normalizeIdList(shared.teleports, defaultTeleports)
+  end
+
+  SharedFollowState.loaded = true
+  return shared
+end
+
+local function saveSharedFollowIds(ids)
+  ids = ids or {}
+
+  local data = {
+    strings = normalizeIdList(ids.strings, defaultStrings),
+    use = normalizeIdList(ids.use, defaultUse),
+    doorsClosed = normalizeIdList(ids.doorsClosed, defaultDoors),
+    teleports = normalizeIdList(ids.teleports, defaultTeleports)
+  }
+
+  writeSharedFollowFile(data)
+  return data
+end
+
+local function applySharedFollowIdsToRuntime(data)
+  if not data or not followCfg then return end
+
+  followCfg.idsToFollow = followCfg.idsToFollow or {}
+  followCfg.idsToFollow.strings = normalizeIdList(data.strings, defaultStrings)
+  followCfg.idsToFollow.use = normalizeIdList(data.use, defaultUse)
+  followCfg.idsToFollow.doorsClosed = normalizeIdList(data.doorsClosed, defaultDoors)
+  followCfg.idsToFollow.teleports = normalizeIdList(data.teleports, defaultTeleports)
+
+  if S then
+    S.ropeIDS = followCfg.idsToFollow.strings
+    S.useIDS = followCfg.idsToFollow.use
+    S.doorsIDS = followCfg.idsToFollow.doorsClosed
+    S.teleportIDS = followCfg.idsToFollow.teleports
+  end
+end
+
+local function refreshSharedFollowIds(forceUpdateContainers)
+  local data = readSharedFollowFile()
+  if not data then return false end
+
+  data.strings = normalizeIdList(data.strings, defaultStrings)
+  data.use = normalizeIdList(data.use, defaultUse)
+  data.doorsClosed = normalizeIdList(data.doorsClosed, defaultDoors)
+  data.teleports = normalizeIdList(data.teleports, defaultTeleports)
+
+  applySharedFollowIdsToRuntime(data)
+
+  if forceUpdateContainers and follow2 then
+    if follow2.stringsContainer then follow2.stringsContainer:setItems(followCfg.idsToFollow.strings) end
+    if follow2.useContainer then follow2.useContainer:setItems(followCfg.idsToFollow.use) end
+    if follow2.doorsContainer then follow2.doorsContainer:setItems(followCfg.idsToFollow.doorsClosed) end
+    if follow2.teleportsContainer then follow2.teleportsContainer:setItems(followCfg.idsToFollow.teleports) end
+  end
+
+  return true
+end
+
+followStorage.follow2Panel = followStorage.follow2Panel or {
+  leaderName = "",
+  followerName = "",
+  ueSpell = "",
+  openPt = false,
+  commandAttack = false,
+  selectChat = "Default",
+  idsToFollow = {
+    strings = {},
+    use = {},
+    doorsClosed = {},
+    teleports = {}
+  }
+}
+
+followCfg = followStorage.follow2Panel
+followCfg.leaderName = tostring(followCfg.leaderName or "")
+followCfg.followerName = tostring(followCfg.followerName or "")
+followCfg.ueSpell = tostring(followCfg.ueSpell or "")
+followCfg.openPt = followCfg.openPt == true
+followCfg.commandAttack = followCfg.commandAttack == true
+followCfg.selectChat = tostring(followCfg.selectChat or "Default")
+followCfg.enabled = followCfg.enabled == true
+followCfg.isLeader = followCfg.isLeader == true
+local localFollowIds = followCfg.idsToFollow or {}
+followCfg.idsToFollow = loadSharedFollowIds(localFollowIds)
+
+storage[SWITCH_FOLLOW] = storage[SWITCH_FOLLOW] or {}
+storage[SWITCH_FOLLOW].enabled = followCfg.enabled
+storage[SWITCH_FOLLOW].leader = followCfg.isLeader
+
+local S = followCfg
+S.texts = S.texts or {}
+S.switches = S.switches or {}
+S.stairIDS = S.stairIDS or {484, 17394, 1977, 414}
+S.buracoIDS = S.buracoIDS or {1959}
+
+local function syncCompat()
+  S.texts.navAttack = tostring(followCfg.leaderName or "")
+  S.texts.navLeader = tostring(followCfg.followerName or "")
+  S.texts.UESpell = tostring(followCfg.ueSpell or "")
+  S.texts.ropeID = tostring(S.texts.ropeID or "3003")
+
+  S.switches.attackCheck = followCfg.enabled == true
+  S.switches.followCheck = followCfg.enabled == true
+  S.switches.useUEcheck = S.switches.useUEcheck == true
+  S.switches.abrirChatParty = followCfg.openPt == true
+  S.switches.debug = S.switches.debug == true
+
+  S.ropeIDS = followCfg.idsToFollow.strings or {}
+  S.useIDS = followCfg.idsToFollow.use or {}
+  S.doorsIDS = followCfg.idsToFollow.doorsClosed or {}
+  S.teleportIDS = followCfg.idsToFollow.teleports or {}
+
+  storage[SWITCH_FOLLOW].enabled = followCfg.enabled == true
+  storage[SWITCH_FOLLOW].leader = followCfg.isLeader == true
+end
+
+local function saveFollow2()
+  syncCompat()
+  storage.LNSControlFollowGlobal = followStorage
+end
+
+syncCompat()
+
+local State = {
+  leader = nil,
+  leaderPositions = {},
+  leaderDirections = {},
+  leaderUsePositions = {},
+  lastLeaderFloor = nil,
+  standTime = now,
+  fecharChannel = 0,
+  leaderWait = 0,
+  lastTarget = nil,
+  lastDoorUse = 0,
+  lastRopeUse = 0,
+  lastUseTry = 0,
+  lastWalkTry = 0,
+  lastFollowTry = 0,
+  lastFloorTry = 0,
+  lastLeaderSeenAt = 0,
+}
+
+-- FOLLOW AGRESSIVO ENQUANTO ATACA
+-- Baseado na lógica da script 2: não usa g_game.follow(),
+-- só autoWalk rápido para o melhor sqm em volta do leader.
+local ATTACK_WALK_INTERVAL = 180
+local IDLE_FOLLOW_RETRY_MS = 900
+local IDLE_AUTOWALK_RETRY_MS = 550
+local IDLE_RECOVERY_RETRY_MS = 1000
+local IDLE_STUCK_MS = 900
+
+local AttackFollow = {
+  lastWalk = 0,
+  lastPath = 0,
+  stuckCount = 0,
+  lastPosKey = ""
+}
+
+local IdleFollow = {
+  lastAutoWalk = 0,
+  lastRecovery = 0
+}
+
+local function dbg(msg)
+  if S.switches.debug then
+    print("[LNS FOLLOW] " .. msg)
+  end
+end
+
+local function getLeaderName()
+  return trim(tostring(followCfg.followerName or ""))
+end
+
+local function getAttackLeaderName()
+  return trim(tostring(followCfg.leaderName or ""))
+end
+
+local function saveFollowSetting(key, value)
+  S.texts[key] = value
+  saveFollow2()
+end
+
+local function safeText(id, default)
+  if S.texts[id] == nil then
+    S.texts[id] = default
+  end
+  return S.texts[id]
+end
+
+local function containsId(list, id)
+  if not list then return false end
+  local wanted = tonumber(id)
+  if not wanted then return false end
+
+  for _, entry in ipairs(list) do
+    local entryId = nil
+    if type(entry) == "table" then
+      entryId = tonumber(entry.id)
+    else
+      entryId = tonumber(entry)
+    end
+    if entryId == wanted then
+      return true
+    end
+  end
+  return false
+end
+
+local function isPartyReady()
+  return player:isPartyMember() or player:isPartyLeader() or player:getShield() > 2
+end
+
+local function canRetry(lastTime, delayMs)
+  return now >= (lastTime + delayMs)
+end
+
+local function resetLeaderCache()
+  State.leader = nil
+  State.leaderPositions = {}
+  State.leaderDirections = {}
+  State.leaderUsePositions = {}
+  State.lastLeaderFloor = nil
+  State.lastLeaderSeenAt = 0
+end
+
+local function setFollowEnabled(value)
+  storage[SWITCH_FOLLOW].enabled = value
+  if not value then
+    g_game.cancelFollow()
+    resetLeaderCache()
+    dbg("Follow desligado e cache resetado.")
+  end
+end
+
+local function updateToolsScripts()
+  if storage[SWITCH_FOLLOW] and storage[SWITCH_FOLLOW].leader then
+    if toolsScripts then toolsScripts:show() end
+  else
+    if toolsScripts then toolsScripts:hide() end
+  end
+end
+
+local function distanceManhattan(pos1, pos2)
+  pos2 = pos2 or player:getPosition()
+  return math.abs(pos1.x - pos2.x) + math.abs(pos1.y - pos2.y)
+end
+
+local function matchPos(p1, p2)
+  return p1 and p2 and p1.x == p2.x and p1.y == p2.y and p1.z == p2.z
+end
+
+local function getVisibleLeader()
+  local name = getLeaderName()
+  if name == "" then return nil end
+
+  local c = getCreatureByName(name)
+  if c and c:getPosition().z == posz() then
+    return c
+  end
+  return nil
+end
+
+local function handleUse(pos)
+  if not canRetry(State.lastUseTry, 200) then return false end
+  State.lastUseTry = now
+
+  local tile = g_map.getTile(pos)
+  if tile and tile:getTopUseThing() then
+    g_game.use(tile:getTopUseThing())
+    dbg("Usando tile em " .. pos.x .. "," .. pos.y .. "," .. pos.z)
+    return true
+  end
+  return false
+end
+
+local function handleRope(pos)
+  if not canRetry(State.lastRopeUse, 300) then return false end
+  State.lastRopeUse = now
+
+  local ropeIdd = tonumber(S.texts.ropeID or "3003")
+  local tile = g_map.getTile(pos)
+  if tile and tile:getTopUseThing() and ropeIdd then
+    useWith(ropeIdd, tile:getTopUseThing())
+    dbg("Usando rope em " .. pos.x .. "," .. pos.y .. "," .. pos.z)
+    return true
+  end
+  return false
+end
+
+local function handleStep(pos)
+  if not canRetry(State.lastWalkTry, 200) then return false end
+  State.lastWalkTry = now
+  autoWalk(pos, 40, {ignoreNonPathable=true, precision=1})
+  return true
+end
+
+local function executeClosest(possibilities)
+  local referencePos = State.leaderPositions[posz()] or player:getPosition()
+  local closest, closestDistance = nil, 99999
+
+  for _, data in ipairs(possibilities) do
+    local dist = distanceManhattan(data.pos, referencePos)
+    if dist < closestDistance then
+      closest = data
+      closestDistance = dist
+    end
+  end
+
+  if closest then
+    return closest.action(closest.pos)
+  end
+  return false
+end
+
+local function handleFloorChange()
+  if not canRetry(State.lastFloorTry, 600) then return false end
+  State.lastFloorTry = now
+
+  local p = player:getPosition()
+  local possibleChangers = {}
+
+  local actionMap = {
+    { ids = S.useIDS,      action = handleUse  },
+    { ids = S.ropeIDS,     action = handleRope },
+    { ids = S.stairIDS,    action = handleStep },
+    { ids = S.buracoIDS,   action = handleStep },
+    { ids = S.teleportIDS, action = handleStep }
+  }
+
+  for _, mapEntry in ipairs(actionMap) do
+    if mapEntry.ids and #mapEntry.ids > 0 then
+      for x = -2, 2 do
+        for y = -2, 2 do
+          local checkPos = {x = p.x + x, y = p.y + y, z = p.z}
+          local tile = g_map.getTile(checkPos)
+          if tile then
+            local topThing = tile:getTopUseThing()
+            local ground = nil
+            if tile.getGround then
+              ground = tile:getGround()
+            end
+
+            if (topThing and containsId(mapEntry.ids, topThing:getId())) or
+               (ground and containsId(mapEntry.ids, ground:getId())) then
+              table.insert(possibleChangers, {action = mapEntry.action, pos = checkPos})
+            end
+          end
+        end
+      end
+    end
+  end
+
+  if #possibleChangers > 0 then
+    dbg("Floor changer encontrado.")
+    return executeClosest(possibleChangers)
+  end
+
+  return false
+end
+
+local function useRopeNear(pos)
+  if not pos then return false end
+
+  for x = -1, 1 do
+    for y = -1, 1 do
+      local tpos = {x = pos.x + x, y = pos.y + y, z = posz()}
+      local tile = g_map.getTile(tpos)
+      if tile and tile:getGround() and containsId(S.ropeIDS, tile:getGround():getId()) then
+        if handleRope(tpos) then
+          delay(getDistanceBetween(player:getPosition(), tpos) * 60)
+          return true
+        end
+      end
+    end
+  end
+  return false
+end
+
+local function handleUsing()
+  local usePos = State.leaderUsePositions[posz()]
+  if not usePos then return false end
+
+  local useTile = g_map.getOrCreateTile(usePos)
+  if useTile and useTile:getTopUseThing() then
+    g_game.use(useTile:getTopUseThing())
+    dbg("Usando posição do leader.")
+    return true
+  end
+  return false
+end
+
+local function getStandTime()
+  return now - State.standTime
+end
+
+local function levitate(dir)
+  if not dir then return false end
+  turn(dir)
+  schedule(200, function()
+    say('exani hur "down')
+    say('exani hur "up')
+  end)
+  dbg("Tentando levitate.")
+  return true
+end
+
+local function handleDoors()
+  if not canRetry(State.lastDoorUse, 850) then return false end
+
+  local doorIds = S.doorsIDS or {}
+  local ppos = player:getPosition()
+  local lpos = State.leader and State.leader:getPosition() or State.leaderPositions[posz()]
+  local bestDoor = nil
+  local bestLeaderDist = 99999
+  local bestPlayerDist = 99999
+
+  for x = ppos.x - 4, ppos.x + 4 do
+    for y = ppos.y - 4, ppos.y + 4 do
+      local pos = {x = x, y = y, z = ppos.z}
+      local tile = g_map.getTile(pos)
+
+      if tile and tile:getTopUseThing() and containsId(doorIds, tile:getTopUseThing():getId()) then
+        local playerDist = getDistanceBetween(ppos, pos)
+        if playerDist <= 4 then
+          local leaderDist = lpos and getDistanceBetween(lpos, pos) or 99999
+
+          if not bestDoor
+            or leaderDist < bestLeaderDist
+            or (leaderDist == bestLeaderDist and playerDist < bestPlayerDist) then
+            bestDoor = {thing = tile:getTopUseThing(), pos = pos}
+            bestLeaderDist = leaderDist
+            bestPlayerDist = playerDist
+          end
+        end
+      end
+    end
+  end
+
+  if not bestDoor then return false end
+
+  State.lastDoorUse = now
+  g_game.use(bestDoor.thing)
+  dbg("Abrindo porta em " .. bestDoor.pos.x .. "," .. bestDoor.pos.y .. "," .. bestDoor.pos.z)
+
+  if lpos then
+    local around = {
+      {x = lpos.x + 1, y = lpos.y, z = lpos.z},
+      {x = lpos.x - 1, y = lpos.y, z = lpos.z},
+      {x = lpos.x, y = lpos.y + 1, z = lpos.z},
+      {x = lpos.x, y = lpos.y - 1, z = lpos.z},
+      {x = lpos.x + 1, y = lpos.y + 1, z = lpos.z},
+      {x = lpos.x + 1, y = lpos.y - 1, z = lpos.z},
+      {x = lpos.x - 1, y = lpos.y + 1, z = lpos.z},
+      {x = lpos.x - 1, y = lpos.y - 1, z = lpos.z},
+    }
+
+    for i = 1, #around do
+      local testPos = around[i]
+      local path = findPath(player:getPosition(), testPos, 20, {ignoreNonPathable=true, precision=1, ignoreCreatures=false})
+      if path then
+        autoWalk(testPos, 200, {ignoreNonPathable=true, precision=1})
+        break
+      end
+    end
+  end
+
+  delay(200)
+  return true
+end
+
+local function handleLeaderInteraction()
+  local l = State.leader
+  if not l then return false end
+
+  local lpos = l:getPosition()
+  local useIds = S.useIDS or {}
+
+  for x = -1, 1 do
+    for y = -1, 1 do
+      local tpos = {x = lpos.x + x, y = lpos.y + y, z = lpos.z}
+      local tile = g_map.getTile(tpos)
+      if tile and tile:getTopUseThing() and containsId(useIds, tile:getTopUseThing():getId()) then
+        if handleUse(tpos) then
+          delay(100)
+          return true
+        end
+      end
+    end
+  end
+
+  return false
+end
+
+local function tryRecoverLeaderPath()
+  local leaderPos = State.leaderPositions[posz()]
+  if leaderPos and getDistanceBetween(player:getPosition(), leaderPos) > 0 then
+    autoWalk(leaderPos, 200, {ignoreNonPathable=true, precision=5})
+    delay(300)
+    dbg("Andando para última posição do leader.")
+    return true
+  end
+
+  if handleLeaderInteraction() then return true end
+  if handleFloorChange() then return true end
+
+  local dir = State.leaderDirections[posz()]
+  if dir then
+    return levitate(dir)
+  end
+
+  if useRopeNear(leaderPos) then return true end
+  if handleUsing() then return true end
+
+  return false
+end
+
+local function ensureFollow(creature)
+  if not creature then return false end
+
+  -- Nao fica cancelando/reiniciando follow toda macro.
+  -- Isso era uma das causas do boneco travar no modo sem atacar.
+  if g_game.isFollowing() and g_game.getFollowingCreature() == creature then
+    return false
+  end
+
+  if not canRetry(State.lastFollowTry, IDLE_FOLLOW_RETRY_MS) then return false end
+  State.lastFollowTry = now
+
+  if g_game.isFollowing() then
+    g_game.cancelFollow()
+  end
+
+  g_game.follow(creature)
+  dbg("Follow nativo ajustado no leader.")
+  return true
+end
+
+local function idleAutoWalkTo(targetPos, precision)
+  if not targetPos then return false end
+  if not canRetry(IdleFollow.lastAutoWalk, IDLE_AUTOWALK_RETRY_MS) then return false end
+
+  IdleFollow.lastAutoWalk = now
+  autoWalk(targetPos, 40, {
+    ignoreNonPathable = true,
+    precision = tonumber(precision) or 1,
+    ignoreCreatures = false
+  })
+  return true
+end
+
+local function followVisibleLeader(creature)
+  if not creature then return false end
+
+  local lpos = creature:getPosition()
+  local myPos = player:getPosition()
+  if not lpos or not myPos or lpos.z ~= myPos.z then return false end
+
+  local dist = getDistanceBetween(myPos, lpos)
+  local standMs = getStandTime()
+
+  -- Idle usa follow nativo como base. AutoWalk so entra como catch-up,
+  -- e nunca fica cancelando/religando o follow em loop.
+  ensureFollow(creature)
+
+  if dist <= 2 then
+    return false
+  end
+
+  if dist >= 7 then
+    idleAutoWalkTo(lpos, 2)
+    return true
+  end
+
+  -- Se ficou parado e afastado, tenta destravar com porta/use/floor changer.
+  -- findPath so roda nessa janela de recovery, nao a cada 200ms.
+  if standMs >= IDLE_STUCK_MS and dist > 2 and canRetry(IdleFollow.lastRecovery, IDLE_RECOVERY_RETRY_MS) then
+    IdleFollow.lastRecovery = now
+
+    local path = findPath(myPos, lpos, 30, {
+      ignoreNonPathable = true,
+      precision = 1,
+      ignoreCreatures = false
+    })
+
+    if not path then
+      if handleUsing() then return true end
+      if handleDoors() then return true end
+      if handleFloorChange() then return true end
+    end
+
+    idleAutoWalkTo(lpos, 1)
+    return true
+  end
+
+  return false
+end
+
+local function getBestAttackFollowPos(leaderPos)
+  if not leaderPos or leaderPos.z ~= posz() then return nil end
+
+  local myPos = player:getPosition()
+  if not myPos then return leaderPos end
+
+  local candidates = {
+    leaderPos,
+    {x = leaderPos.x + 1, y = leaderPos.y, z = leaderPos.z},
+    {x = leaderPos.x - 1, y = leaderPos.y, z = leaderPos.z},
+    {x = leaderPos.x, y = leaderPos.y + 1, z = leaderPos.z},
+    {x = leaderPos.x, y = leaderPos.y - 1, z = leaderPos.z},
+    {x = leaderPos.x + 1, y = leaderPos.y + 1, z = leaderPos.z},
+    {x = leaderPos.x - 1, y = leaderPos.y - 1, z = leaderPos.z},
+    {x = leaderPos.x + 1, y = leaderPos.y - 1, z = leaderPos.z},
+    {x = leaderPos.x - 1, y = leaderPos.y + 1, z = leaderPos.z}
+  }
+
+  local best = nil
+  local bestDist = 999
+
+  -- Nao usa findPath em 9 tiles a cada ciclo. Isso pesa muito.
+  -- Escolhe o melhor tile walkable perto do leader e deixa o autoWalk resolver.
+  for _, p in ipairs(candidates) do
+    local tile = g_map.getTile(p)
+    if tile and tile:isWalkable() then
+      local d = getDistanceBetween(myPos, p) or 999
+      if d < bestDist then
+        best = p
+        bestDist = d
+      end
+    end
+  end
+
+  return best or leaderPos
+end
+
+local function attackDoWalkTo(targetPos, precision)
+  local myPos = player:getPosition()
+  if not myPos or not targetPos or myPos.z ~= targetPos.z then return false end
+
+  precision = tonumber(precision) or 1
+
+  if getDistanceBetween(myPos, targetPos) <= precision then
+    AttackFollow.stuckCount = 0
+    return true
+  end
+
+  if now - AttackFollow.lastWalk < ATTACK_WALK_INTERVAL then
+    return true
+  end
+
+  AttackFollow.lastWalk = now
+
+  local walkPos = getBestAttackFollowPos(targetPos) or targetPos
+
+  autoWalk(walkPos, 70, {
+    ignoreNonPathable = true,
+    ignoreCreatures = false,
+    precision = 1
+  })
+
+  return false
+end
+
+local function followVisibleLeaderWhileAttacking(creature)
+  if not creature then return false end
+
+  -- IMPORTANTE: atacando não usa follow nativo.
+  -- Isso evita quebrar target e deixa o MC andar agressivo igual a script 2.
+  if g_game.isFollowing() then
+    g_game.cancelFollow()
+  end
+
+  local lpos = creature:getPosition()
+  if not lpos or lpos.z ~= posz() then return false end
+
+  local dist = getDistanceBetween(player:getPosition(), lpos)
+  if dist > 3 and canRetry(AttackFollow.lastPath, 450) then
+    AttackFollow.lastPath = now
+    local path = findPath(player:getPosition(), lpos, 70, {
+      ignoreNonPathable = true,
+      ignoreCreatures = false,
+      precision = 1
+    })
+
+    if not path then
+      if handleDoors() then return true end
+      if handleUsing() then return true end
+      if handleFloorChange() then return true end
+    end
+  end
+
+  attackDoWalkTo(lpos, 1)
+  dbg("Attack follow agressivo no leader.")
+  return true
+end
+
+local function runFollowLogicIdle()
+  if not storage[SWITCH_FOLLOW] or storage[SWITCH_FOLLOW].enabled ~= true then return end
+  if not (storage[SWITCH_FOLLOW] and storage[SWITCH_FOLLOW].enabled == true) then return end
+  if g_game.isAttacking() then return end
+
+  local leaderName = getLeaderName()
+  if leaderName == "" then return end
+
+  local c = getVisibleLeader()
+  State.leader = c
+
+  -- aqui pode usar follow normal
+  if c then
+    return followVisibleLeader(c)
+  else
+    return tryRecoverLeaderPath()
+  end
+end
+
+local function runFollowLogicAttacking()
+  if not storage[SWITCH_FOLLOW] or storage[SWITCH_FOLLOW].enabled ~= true then return end
+  if not (storage[SWITCH_FOLLOW] and storage[SWITCH_FOLLOW].enabled == true) then return end
+  if not g_game.isAttacking() then return end
+
+  local leaderName = getLeaderName()
+  if leaderName == "" then return end
+
+  local c = getVisibleLeader()
+  State.leader = c
+
+  -- sem leader visível: tenta recuperar caminho / floor / door
+  if not c then
+    local leaderPos = State.leaderPositions[posz()]
+    if leaderPos and getDistanceBetween(player:getPosition(), leaderPos) > 0 then
+      attackDoWalkTo(leaderPos, 1)
+      dbg("Andando para última posição do leader enquanto ataca.")
+      return true
+    end
+
+    if handleDoors() then return true end
+    if handleLeaderInteraction() then return true end
+    if handleFloorChange() then return true end
+
+    local dir = State.leaderDirections[posz()]
+    if dir then
+      return levitate(dir)
+    end
+
+    if useRopeNear(leaderPos) then return true end
+    if handleUsing() then return true end
+
+    return false
+  end
+
+  -- com leader visível, só reposiciona sem follow bruto
+  return followVisibleLeaderWhileAttacking(c)
+end
+
+
+followButton = setupUI([[
+Panel
+  height: 35
+
+  BotSwitch
+    id: title
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    text-align: center
+    margin-right: 45
+    text: Follow
+    color: white
+    height: 18
+
+  Button
+    id: settings
+    anchors.top: prev.top
+    anchors.left: prev.right
+    anchors.right: parent.right
+    margin-left: 2
+    height: 18
+    text: Config
+    opacity: 1.00
+    color: white
+
+  CheckBox
+    id: lider
+    anchors.left: title.left
+    anchors.top: title.bottom
+    margin-top: 2
+    image-source: /images/ui/checkbox_round
+    text: I'm Leader
+    text-auto-resize: true
+]])
+
+followButton.title:setOn(followCfg.enabled)
+followButton.lider:setChecked(followCfg.isLeader)
+
+followButton.title.onClick = function(widget)
+  followCfg.enabled = not widget:isOn()
+  widget:setOn(followCfg.enabled)
+
+  followStorage.follow2Panel.enabled = followCfg.enabled
+  followStorage.followButton = followStorage.followButton or {}
+  followStorage.followButton.enabled = followCfg.enabled
+  storage[SWITCH_FOLLOW].enabled = followCfg.enabled
+
+  if not followCfg.enabled then
+    g_game.cancelFollow()
+    if player and player.stopAutoWalk then
+      pcall(function() player:stopAutoWalk() end)
+    end
+  end
+
+  saveFollow2()
+end
+
+followButton.lider.onClick = function(widget)
+  followCfg.isLeader = not widget:isChecked()
+  widget:setChecked(followCfg.isLeader)
+
+  if toolsScripts and not toolsScripts:isDestroyed() then
+    if followCfg.isLeader then
+      toolsScripts:show()
+      toolsScripts:raise()
+      toolsScripts:focus()
+    else
+      toolsScripts:hide()
+    end
+  end
+
+  storage[SWITCH_FOLLOW].leader = followCfg.isLeader
+  saveFollow2()
+end
+
+schedule(500, function()
+  if toolsScripts and not toolsScripts:isDestroyed() then
+    if followCfg.isLeader then
+      toolsScripts:show()
+    else
+      toolsScripts:hide()
+    end
+  end
+end)
+
+followButton.settings.onClick = function()
+  if follow2 then
+    follow2:show()
+    follow2:raise()
+    follow2:focus()
+  end
+end
+
+local function getContainerItems(widget)
+  if not widget or not widget.getItems then return {} end
+  local ok, items = pcall(function() return widget:getItems() end)
+  if ok and type(items) == "table" then return items end
+  return {}
+end
+
+--==================================================
+-- MAIN FOLLOW PANEL
+--==================================================
+
+follow2 = setupUI([=[
+MainWindow
+  id: mainPanel
+  size: 310 395
+  text: Panel Follow
+  margin-top: -50
+
+  Button
+    id: tabConfig
+    checkable: true
+    anchors.top: parent.top
+    anchors.left: parent.left
+    height: 33
+    margin-left: -5
+    width: 144
+    text-align: center
+    text: Follow
+
+    UIItem
+      id: idConfig
+      anchors.top: parent.top
+      anchors.left: parent.left
+      margin-top: -4
+      margin-left: -9
+      size: 33 33
+      padding: 3
+      phantom: true
+
+    UIWidget
+      id: activeLine
+      anchors.left: prev.right
+      anchors.right: parent.right
+      anchors.bottom: parent.bottom
+      margin-left: 0
+      margin-right: 8
+      height: 2
+      background-color: #d7c08a
+      visible: false
+      phantom: true
+
+  Button
+    id: tabAntired
+    checkable: true
+    anchors.verticalCenter: tabConfig.verticalCenter
+    anchors.left: tabConfig.right
+    height: 33
+    margin-left: 0
+    width: 145
+    text-align: center
+    text: IDs Follow
+
+    UIItem
+      id: idAntired
+      anchors.top: parent.top
+      anchors.left: parent.left
+      margin-top: -4
+      margin-left: -9
+      size: 33 33
+      padding: 3
+      phantom: true
+
+    UIWidget
+      id: activeLine
+      anchors.left: prev.right
+      anchors.right: parent.right
+      anchors.bottom: parent.bottom
+      margin-left: 0
+      margin-right: 8
+      height: 2
+      background-color: #d7c08a
+      visible: false
+      phantom: true
+
+  FlatPanel
+    id: flatConfig
+    anchors.top: tabConfig.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    margin-bottom: 20
+    margin-left: -5
+    margin-top: 6
+    margin-right: -5
+
+    Label
+      id: liderLabel
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      margin-top: 6
+      margin-left: 8
+      margin-right: 8
+      text: Leader Name:  
+
+    BotTextEdit
+      id: lidername
+      anchors.top: prev.bottom
+      anchors.left: prev.left
+      anchors.right: prev.right
+      margin-top: 3
+      placeholder: "#N/D Config..."
+      text-align: left
+
+    Label
+      id: followLabel
+      anchors.top: prev.bottom
+      anchors.left: prev.left
+      anchors.right: prev.right
+      margin-top: 8
+      text: Follower Name:  
+
+    BotTextEdit
+      id: followname
+      anchors.top: prev.bottom
+      anchors.left: prev.left
+      anchors.right: prev.right
+      margin-top: 3
+      placeholder: "#N/D Config..."
+      text-align: left
+
+    Label
+      id: ueLabel
+      anchors.top: prev.bottom
+      anchors.left: prev.left
+      anchors.right: prev.right
+      margin-top: 8
+      text: UE Spell Name:  
+
+    BotTextEdit
+      id: uespell
+      anchors.top: prev.bottom
+      anchors.left: prev.left
+      anchors.right: prev.right
+      margin-top: 3
+      placeholder: "#N/D Config..."
+      text-align: left
+
+    HorizontalSeparator
+      id: sep1
+      anchors.top: prev.bottom
+      anchors.left: prev.left
+      anchors.right: prev.right
+      margin-top: 8
+
+    BotSwitch
+      id: abrirPt
+      anchors.top: prev.bottom
+      anchors.left: prev.left
+      anchors.right: prev.right
+      margin-top: 6
+      height: 18
+      text: Open PT Channel
+
+    Panel
+      id: commandLine
+      anchors.top: prev.bottom
+      anchors.left: prev.left
+      anchors.right: prev.right
+      margin-top: 1
+      height: 35
+
+      BotSwitch
+        id: comandoAttack
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 18
+        text: Command Attack
+        tooltip: Use this to send the attack command in the chat defined to the side (for knights or monks only).
+
+      ComboBox
+        id: selectChat
+        anchors.top: prev.bottom
+        anchors.left: prev.left
+        anchors.right: prev.right
+        margin-top: 2
+        height: 18
+        @onSetup: |
+          self:addOption("Default")
+          self:addOption("Party Channel")
+
+  FlatPanel
+    id: flatAntired
+    anchors.top: flatConfig.top
+    anchors.left: flatConfig.left
+    anchors.right: flatConfig.right
+    anchors.bottom: flatConfig.bottom
+
+    FlatPanel
+      id: stringsPanel
+      anchors.top: parent.top
+      anchors.left: parent.left
+      width: 137
+      height: 136
+      margin-top: 6
+      margin-left: 8
+
+      Label
+        id: labelStrings
+        anchors.top: parent.top
+        anchors.left: parent.left
+        width: 82
+        margin-left: 4
+        margin-top: -5
+        text-align: center
+        color: #d7c08a
+        font: verdana-11px-rounded
+        text: Strings:
+
+      BotContainer
+        id: stringsContainer
+        anchors.top: prev.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        margin-top: 2
+        margin-left: 5
+        margin-right: 5
+        margin-bottom: 5
+
+    FlatPanel
+      id: usePanel
+      anchors.top: stringsPanel.top
+      anchors.left: stringsPanel.right
+      anchors.right: parent.right
+      height: 136
+      margin-left: 6
+      margin-right: 8
+
+      Label
+        id: labelUse
+        anchors.top: parent.top
+        anchors.left: parent.left
+        width: 82
+        margin-left: 4
+        margin-top: -5
+        text-align: center
+        font: verdana-11px-rounded
+        color: #d7c08a
+        text: Use Ids:
+
+      BotContainer
+        id: useContainer
+        anchors.top: prev.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        margin-top: 2
+        margin-left: 5
+        margin-right: 5
+        margin-bottom: 5
+
+    FlatPanel
+      id: doorsPanel
+      anchors.top: stringsPanel.bottom
+      anchors.left: stringsPanel.left
+      width: 137
+      anchors.bottom: parent.bottom
+      margin-top: 6
+      margin-bottom: 8
+
+      Label
+        id: labelDoors
+        anchors.top: parent.top
+        anchors.left: parent.left
+        width: 82
+        margin-left: 4
+        margin-top: -5
+        text-align: center
+        font: verdana-11px-rounded
+        color: #d7c08a
+        text: Doors:
+
+      BotContainer
+        id: doorsContainer
+        anchors.top: prev.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        margin-top: 2
+        margin-left: 5
+        margin-right: 5
+        margin-bottom: 5
+
+    FlatPanel
+      id: teleportsPanel
+      anchors.top: usePanel.bottom
+      anchors.left: usePanel.left
+      anchors.right: usePanel.right
+      anchors.bottom: parent.bottom
+      margin-top: 6
+      margin-bottom: 8
+
+      Label
+        id: labelTeleports
+        anchors.top: parent.top
+        anchors.left: parent.left
+        width: 90
+        margin-left: 4
+        margin-top: -5
+        text-align: center
+        color: #d7c08a
+        font: verdana-11px-rounded
+        text: Teleports:
+
+      BotContainer
+        id: teleportsContainer
+        anchors.top: prev.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        margin-top: 2
+        margin-left: 5
+        margin-right: 5
+        margin-bottom: 5
+
+  Button
+    id: closePanel
+    anchors.left: flatConfig.left
+    anchors.right: flatConfig.right
+    anchors.top: flatConfig.bottom
+    height: 20
+    margin-top: 5
+    text: Close
+]=], g_ui.getRootWidget())
+follow2:hide()
+
+local function WFollowPanel(root, id)
+  if not root or not id then return nil end
+
+  if root.getChildById then
+    local ok, child = pcall(function() return root:getChildById(id) end)
+    if ok and child then return child end
+  end
+
+  if root.recursiveGetChildById then
+    local ok, child = pcall(function() return root:recursiveGetChildById(id) end)
+    if ok and child then return child end
+  end
+
+  if root.getChildren then
+    local ok, childs = pcall(function() return root:getChildren() end)
+    if ok and childs then
+      for i = 1, #childs do
+        local found = WFollowPanel(childs[i], id)
+        if found then return found end
+      end
+    end
+  end
+
+  return nil
+end
+
+local function bindFollowPanelIds()
+  local ids = {
+    "tabConfig", "tabAntired", "flatConfig", "flatAntired", "closePanel",
+    "lidername", "followname", "uespell", "abrirPt", "comandoAttack", "selectChat",
+    "stringsContainer", "useContainer", "doorsContainer", "teleportsContainer"
+  }
+
+  for i = 1, #ids do
+    local id = ids[i]
+    if not follow2[id] then
+      follow2[id] = WFollowPanel(follow2, id)
+    end
+  end
+end
+
+local function showFollowWidget(widget, visible)
+  if not widget then return end
+  if visible then
+    if widget.show then widget:show() end
+  else
+    if widget.hide then widget:hide() end
+  end
+end
+
+local function setFollowTabPressed(button, pressed)
+  if not button then return end
+  showFollowWidget(WFollowPanel(button, "activeLine"), pressed)
+
+  if button.setChecked then pcall(function() button:setChecked(pressed) end) end
+  if button.setPressed then pcall(function() button:setPressed(pressed) end) end
+  if button.setOn then pcall(function() button:setOn(pressed) end) end
+
+  if button.setOpacity then button:setOpacity(pressed and 1.00 or 0.74) end
+  if button.setColor then button:setColor(pressed and "#d7c08a" or "#d6d6d6") end
+end
+
+local function setFollowPanelTab(tab)
+  if tab ~= "config" and tab ~= "antired" then tab = "config" end
+
+  showFollowWidget(follow2.flatConfig, tab == "config")
+  showFollowWidget(follow2.flatAntired, tab == "antired")
+
+  setFollowTabPressed(follow2.tabConfig, tab == "config")
+  setFollowTabPressed(follow2.tabAntired, tab == "antired")
+end
+
+local function setFollowIcon(widget, id)
+  if widget and widget.setItemId then
+    pcall(function() widget:setItemId(tonumber(id) or 0) end)
+  end
+end
+
+bindFollowPanelIds()
+
+if follow2.tabConfig and not follow2.tabConfig.idConfig then
+  follow2.tabConfig.idConfig = WFollowPanel(follow2.tabConfig, "idConfig")
+end
+
+if follow2.tabAntired and not follow2.tabAntired.idAntired then
+  follow2.tabAntired.idAntired = WFollowPanel(follow2.tabAntired, "idAntired")
+end
+
+setFollowIcon(follow2.tabConfig and follow2.tabConfig.idConfig, 44051)
+setFollowIcon(follow2.tabAntired and follow2.tabAntired.idAntired, 1977)
+
+if follow2.tabConfig then
+  follow2.tabConfig.onClick = function()
+    setFollowPanelTab("config")
+  end
+end
+
+if follow2.tabAntired then
+  follow2.tabAntired.onClick = function()
+    setFollowPanelTab("antired")
+  end
+end
+
+setFollowPanelTab("config")
+
+if g_app and g_app.isMobile and g_app.isMobile() then
+  follow2:setSize("350 505")
+end
+
+--==================================================
+-- BIND MAIN PANEL
+--==================================================
+
+follow2.lidername:setText(followCfg.leaderName)
+follow2.followname:setText(followCfg.followerName)
+follow2.uespell:setText(followCfg.ueSpell)
+follow2.abrirPt:setOn(followCfg.openPt)
+follow2.comandoAttack:setOn(followCfg.commandAttack)
+
+if follow2.selectChat.setOption then
+  follow2.selectChat:setOption(followCfg.selectChat)
+end
+
+follow2.lidername.onTextChange = function(_, text)
+  followCfg.leaderName = tostring(text or "")
+  saveFollow2()
+end
+
+follow2.followname.onTextChange = function(_, text)
+  followCfg.followerName = tostring(text or "")
+  saveFollow2()
+end
+
+follow2.uespell.onTextChange = function(_, text)
+  followCfg.ueSpell = tostring(text or "")
+  saveFollow2()
+end
+
+follow2.abrirPt.onClick = function(widget)
+  followCfg.openPt = not widget:isOn()
+  widget:setOn(followCfg.openPt)
+  saveFollow2()
+end
+
+follow2.comandoAttack.onClick = function(widget)
+  followCfg.commandAttack = not widget:isOn()
+  widget:setOn(followCfg.commandAttack)
+  saveFollow2()
+end
+
+follow2.selectChat.onOptionChange = function(_, option)
+  followCfg.selectChat = tostring(option or "Default")
+  saveFollow2()
+end
+
+follow2.closePanel.onClick = function()
+  follow2:hide()
+end
+
+--==================================================
+-- BIND IDS CONTAINERS
+--==================================================
+
+UI.ContainerEx(function(widget, items)
+  followCfg.idsToFollow.strings = normalizeIdList(items or {}, defaultStrings)
+  followCfg.idsToFollow = saveSharedFollowIds(followCfg.idsToFollow)
+  saveFollow2()
+end, true, nil, follow2.stringsContainer)
+
+follow2.stringsContainer:setItems(followCfg.idsToFollow.strings)
+
+UI.ContainerEx(function(widget, items)
+  followCfg.idsToFollow.use = normalizeIdList(items or {}, defaultUse)
+  followCfg.idsToFollow = saveSharedFollowIds(followCfg.idsToFollow)
+  saveFollow2()
+end, true, nil, follow2.useContainer)
+
+follow2.useContainer:setItems(followCfg.idsToFollow.use)
+
+UI.ContainerEx(function(widget, items)
+  followCfg.idsToFollow.doorsClosed = normalizeIdList(items or {}, defaultDoors)
+  followCfg.idsToFollow = saveSharedFollowIds(followCfg.idsToFollow)
+  saveFollow2()
+end, true, nil, follow2.doorsContainer)
+
+follow2.doorsContainer:setItems(followCfg.idsToFollow.doorsClosed)
+
+UI.ContainerEx(function(widget, items)
+  followCfg.idsToFollow.teleports = normalizeIdList(items or {}, defaultTeleports)
+  followCfg.idsToFollow = saveSharedFollowIds(followCfg.idsToFollow)
+  saveFollow2()
+end, true, nil, follow2.teleportsContainer)
+
+follow2.teleportsContainer:setItems(followCfg.idsToFollow.teleports)
+
+macro(60000, function()
+  -- Recarrega o sharedFollow.json para outros chars abertos pegarem alterações.
+  -- Se o painel estiver aberto, não força setItems para não atrapalhar drag/drop.
+  local updateContainers = follow2 and follow2.isVisible and not follow2:isVisible()
+  refreshSharedFollowIds(updateContainers)
+end)
+
+macro(200, function()
+  runFollowLogicIdle()
+end)
+
+macro(120, function()
+  runFollowLogicAttacking()
+end)
+
+onCreaturePositionChange(function(creature, newPos, oldPos)
+  if not (storage[SWITCH_FOLLOW] and storage[SWITCH_FOLLOW].enabled == true) then return end
+
+  if creature:getName() == player:getName() then
+    State.standTime = now
+    return
+  end
+
+  if creature:getName():lower() ~= getLeaderName():lower() then return end
+
+  if newPos then
+    State.leaderPositions[newPos.z] = newPos
+    State.lastLeaderFloor = newPos.z
+    State.lastLeaderSeenAt = now
+    if newPos.z == posz() then
+      State.leader = creature
+      if storage[SWITCH_FOLLOW] and storage[SWITCH_FOLLOW].enabled == true and g_game.isAttacking() then
+        attackDoWalkTo(newPos, 1)
+      end
+    else
+      State.leader = nil
+    end
+  else
+    State.leader = nil
+  end
+
+  if oldPos and newPos and oldPos.z ~= newPos.z then
+    State.leaderDirections[oldPos.z] = creature:getDirection()
+  end
+end)
+
+onCreatureAppear(function(creature)
+  if not (storage[SWITCH_FOLLOW] and storage[SWITCH_FOLLOW].enabled == true) then return end
+  if creature:getName():lower() == getLeaderName():lower() and creature:getPosition().z == posz() then
+    State.leader = creature
+    State.lastLeaderSeenAt = now
+  end
+end)
+
+onCreatureDisappear(function(creature)
+  if not (storage[SWITCH_FOLLOW] and storage[SWITCH_FOLLOW].enabled == true) then return end
+  if creature:getName():lower() == getLeaderName():lower() then
+    State.leader = nil
+  end
+end)
+
+onMissle(function(missle)
+  local src = missle:getSource()
+  if src.z ~= posz() then return end
+
+  local from = g_map.getTile(src)
+  local to = g_map.getTile(missle:getDestination())
+  if not from or not to then return end
+
+  local fromCreatures = from:getCreatures()
+  local toCreatures = to:getCreatures()
+  if #fromCreatures ~= 1 or #toCreatures ~= 1 then return end
+
+  local c1 = fromCreatures[1]
+  local t1 = toCreatures[1]
+
+  local navAttack = getAttackLeaderName():lower()
+  if navAttack == "" then return end
+  if t1:getName():lower() == navAttack then return end
+
+  if c1:getName():lower() == navAttack then
+    if storage[SWITCH_FOLLOW] and storage[SWITCH_FOLLOW].enabled == true then
+      local currentTarget = g_game.getAttackingCreature()
+      if not currentTarget or currentTarget ~= t1 then
+        g_game.attack(t1)
+      end
+    end
+  end
+end)
+
+macro(1000, function()
+  syncCompat()
+  if S.switches.abrirChatParty ~= true then return end
+  if not isPartyReady() then return end
+
+  if not modules.game_console.getTab("Party") then
+    g_game.requestChannels()
+    g_game.joinChannel(1)
+    State.fecharChannel = now + 2000
+  end
+
+  if State.fecharChannel > 0 and now >= State.fecharChannel then
+    local w = nil
+
+    if modules and modules.game_console then
+      w = modules.game_console.channelsWindow
+    end
+
+    if not w then
+      local root = g_ui.getRootWidget()
+      if root and root.recursiveGetChildById then
+        w = root:recursiveGetChildById("channelsWindow")
+      end
+    end
+
+    if w then
+      w:destroy()
+      if modules and modules.game_console then
+        modules.game_console.channelsWindow = nil
+      end
+    end
+
+    State.fecharChannel = 0
+  end
+end)
+
+local function encodeTargetId(id)
+  local s = tostring(id)
+  if #s >= 8 then
+    local p1 = s:sub(1,1)
+    local p2 = s:sub(2,3)
+    local p3 = s:sub(4,4)
+    local p4 = s:sub(5,6)
+    local p5 = s:sub(7,8)
+    local p6 = s:sub(9,10)
+    return "." .. p1 .. "@" .. p2 .. "#" .. p3 .. "!" .. p4 .. "+" .. p5 .. "[" .. p6 .. "]"
+  end
+  return "." .. s
+end
+
+local function decodeTargetId(text)
+  local digits = (text or ""):gsub("%D", "")
+  if digits == "" then return nil end
+  return tonumber(digits)
+end
+
+local function isKnight()
+  local voc = player:getVocation()
+  return voc == 1 or voc == 6
+end
+
+macro(500, function()
+  if followCfg.commandAttack ~= true then return end
+
+  if not isKnight() then return end
+  if not isPartyReady() then return end
+
+  local t = g_game.getAttackingCreature()
+  if not t then return end
+  if t:getPosition().z ~= posz() then return end
+
+  if State.leaderWait >= now and State.lastTarget == t then return end
+  State.lastTarget = t
+
+  local msg = "ATACAR: " .. encodeTargetId(t:getId())
+
+  -- só usa party channel se estiver selecionado Party Channel
+  if tostring(followCfg.selectChat or "Default") == "Party Channel" then
+    sayChannel(1, msg)
+  else
+    say(msg)
+  end
+
+  State.leaderWait = now + 8000
+end)
+
+onTalk(function(name, level, mode, text, channelId, pos)
+  if channelId ~= 1 then return end
+
+  local leaderName = getAttackLeaderName():lower()
+  if leaderName == "" then return end
+  if name:lower() ~= leaderName then return end
+
+  local id = decodeTargetId(text)
+  if not id then return end
+
+  local target = getCreatureById(id)
+  if not target then return end
+  if target:getPosition().z ~= posz() then return end
+  if g_game.getAttackingCreature() == target then return end
+
+  g_game.attack(target)
+end)
+
+end)
