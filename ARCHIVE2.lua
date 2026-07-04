@@ -475,7 +475,7 @@ MainWindow
 ]=], g_ui.getRootWidget())
 equipInterface:hide()
 
-if g_app and g_app.isMobile and g_app.isMobile() then
+if modules._G.g_app.isMobile() then
   equipInterface:setSize("453 440")
 end
 
@@ -2166,7 +2166,7 @@ panelSwap.closePanel.onClick = function()
   panelSwap:hide()
 end
 
-if g_app and g_app.isMobile and g_app.isMobile() then
+if modules._G.g_app.isMobile() then
   equipInterface:setSize("560 355")
 end
 
@@ -3735,7 +3735,7 @@ end
 
 bindAutoPreyWidgets()
 
-if g_app and g_app.isMobile and g_app.isMobile() then
+if modules._G.g_app.isMobile() then
   preyInterface:setSize("320 410")
 end
 
