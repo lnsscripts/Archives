@@ -696,7 +696,7 @@ end
 
 setAttackBotPanelTab("config")
 
-if g_app and g_app.isMobile and g_app.isMobile() then
+if modules._G.g_app.isMobile()) then
   comboInterface:setSize("350 505")
 end
 
@@ -3613,7 +3613,7 @@ MainWindow
 
 panelHealing:hide()
 
-if g_app and g_app.isMobile and g_app.isMobile() then
+if modules._G.g_app.isMobile() then
   panelHealing:setSize("550 357")
 end
 
@@ -4766,7 +4766,7 @@ local function getConditionWidget(id)
   return conditionsInterface:recursiveGetChildById(id)
 end
 
-if g_app and g_app.isMobile and g_app.isMobile() then
+if modules._G.g_app.isMobile()) then
   conditionsInterface:setSize("350 290")
 end
 
@@ -5487,7 +5487,7 @@ MainWindow
 
 sioInterface:hide()
 
-if g_app and g_app.isMobile and g_app.isMobile() then
+if modules._G.g_app.isMobile() then
   sioInterface:setSize("380 410")
 end
 
@@ -8673,7 +8673,7 @@ end
 
 setFollowPanelTab("config")
 
-if g_app and g_app.isMobile and g_app.isMobile() then
+if modules._G.g_app.isMobile() then
   follow2:setSize("350 505")
 end
 
