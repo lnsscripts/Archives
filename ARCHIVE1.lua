@@ -168,6 +168,8 @@ attackBotStorage[switchCombo] = attackBotStorage[switchCombo] or { enabled = fal
 comboButton = setupUI([[
 Panel
   height: 40
+  margin-top: -5
+      
   BotSwitch
     id: title
     anchors.top: parent.top
