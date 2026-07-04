@@ -696,7 +696,7 @@ end
 
 setAttackBotPanelTab("config")
 
-if modules._G.g_app.isMobile()) then
+if modules._G.g_app.isMobile() then
   comboInterface:setSize("350 505")
 end
 
@@ -4766,7 +4766,7 @@ local function getConditionWidget(id)
   return conditionsInterface:recursiveGetChildById(id)
 end
 
-if modules._G.g_app.isMobile()) then
+if modules._G.g_app.isMobile() then
   conditionsInterface:setSize("350 290")
 end
 
