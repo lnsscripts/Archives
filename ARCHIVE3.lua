@@ -12438,6 +12438,12 @@ warStorage[STORAGE_KEY] = warStorage[STORAGE_KEY] or {
 
 local cfg = warStorage[STORAGE_KEY]
 
+lnsFullTankActive = cfg.enabled == true
+
+function isLnsFullTankActive()
+  return lnsFullTankActive == true
+end
+
 local FULL_SLOT_NECK = SlotNeck or 2
 local FULL_SLOT_FINGER = SlotFinger or 9
 local FULL_IS_OLD_CLIENT = g_game.getClientVersion() < 960
@@ -12595,9 +12601,10 @@ end
 
 local function setFullTankEnabled(state)
   cfg.enabled = state == true
+  lnsFullTankActive = cfg.enabled == true
 
   ui.enable:setOn(cfg.enabled)
-  ui.enable:setText(cfg.enabled and "Full Equip" or "Full Equip")
+  ui.enable:setText("Full Equip")
 
   saveFullTank()
 end
