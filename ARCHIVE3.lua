@@ -5921,6 +5921,7 @@ local targetLifeColors = {
 
 toolsStorage = toolsStorage or {}
 toolsStorage[panelName] = toolsStorage[panelName] or {}
+toolsStorage[panelName].targetInfoPos = toolsStorage[panelName].targetInfoPos or { x = 0, y = 0 }
 
 local function getTargetColor(percent)
   percent = tonumber(percent) or 0
@@ -5963,7 +5964,6 @@ UIWindow
     font: verdana-11px-rounded
     color: white
     text: TARGET
-    phantom: false
 
   Label
     id: targetDistance
@@ -5974,7 +5974,6 @@ UIWindow
     font: verdana-11px-rounded
     color: white
     text: Distance:
-    phantom: false
 
   ProgressBar
     id: targetHpBar
@@ -5987,7 +5986,6 @@ UIWindow
     opacity: 0.85
     text-align: center
     background-color: red
-    phantom: false
 ]], g_ui.getRootWidget())
 
 targetUI:hide()
@@ -6032,187 +6030,9 @@ local function saveTargetPos()
   end
 end
 
-local targetDragging = false
-local targetMoveRef = nil
-local lastSavePos = 0
-
-local oldRootMove = nil
-local oldRootRelease = nil
-local rootMoveHandler = nil
-local rootReleaseHandler = nil
-local rootHooked = false
-
-local function moveTarget(mousePos)
-  if not targetDragging or not mousePos then return true end
-
-  local parent = targetUI:getParent()
-  if not parent or not parent.getRect then return true end
-
-  local r = parent:getRect()
-  local ref = targetMoveRef or { x = 0, y = 0 }
-
-  local x = mousePos.x - ref.x
-  local y = mousePos.y - ref.y
-
-  x = math.min(math.max(r.x, x), r.x + r.width - targetUI:getWidth())
-  y = math.min(math.max(r.y, y), r.y + r.height - targetUI:getHeight())
-
-  targetUI:move(x, y)
-
-  toolsStorage[panelName].targetInfoPos = {
-    x = x,
-    y = y
-  }
-
-  if now and now - lastSavePos > 500 then
-    saveTargetPos()
-    lastSavePos = now
-  end
-
-  return true
-end
-
-local function unhookRootDrag()
-  if not rootHooked then return end
-
-  local root = g_ui.getRootWidget()
-
-  if root.onMouseMove == rootMoveHandler then
-    root.onMouseMove = oldRootMove
-  end
-
-  if root.onMouseRelease == rootReleaseHandler then
-    root.onMouseRelease = oldRootRelease
-  end
-
-  oldRootMove = nil
-  oldRootRelease = nil
-  rootMoveHandler = nil
-  rootReleaseHandler = nil
-  rootHooked = false
-end
-
-local function stopTargetDrag()
-  if not targetDragging then return false end
-
-  targetDragging = false
-  targetMoveRef = nil
-
-  saveTargetPos()
-  unhookRootDrag()
-
-  return true
-end
-
-local function hookRootDrag()
-  if rootHooked then return end
-
-  local root = g_ui.getRootWidget()
-
-  oldRootMove = root.onMouseMove
-  oldRootRelease = root.onMouseRelease
-
-  rootMoveHandler = function(widget, mousePos)
-    if targetDragging then
-      return moveTarget(mousePos)
-    end
-
-    if oldRootMove then
-      return oldRootMove(widget, mousePos)
-    end
-
-    return false
-  end
-
-  rootReleaseHandler = function(widget, mousePos, button)
-    if targetDragging then
-      stopTargetDrag()
-      return true
-    end
-
-    if oldRootRelease then
-      return oldRootRelease(widget, mousePos, button)
-    end
-
-    return false
-  end
-
-  root.onMouseMove = rootMoveHandler
-  root.onMouseRelease = rootReleaseHandler
-
-  rootHooked = true
-end
-
-local function startTargetDrag(widget, mousePos)
-  if not isMoveKeyPressed() then return false end
-  if not mousePos then return true end
-
-  targetUI:breakAnchors()
-
-  targetMoveRef = {
-    x = mousePos.x - targetUI:getX(),
-    y = mousePos.y - targetUI:getY()
-  }
-
-  targetDragging = true
-  hookRootDrag()
-
-  return true
-end
-
-local function clearDrag(widget)
-  if not widget then return end
-
-  widget.onDragEnter = nil
-  widget.onDragMove = nil
-  widget.onDragLeave = nil
-  widget.onMousePress = nil
-  widget.onMouseMove = nil
-  widget.onMouseRelease = nil
-end
-
-local function applyDrag(widget)
-  if not widget then return end
-
-  widget:setFocusable(true)
-  widget:setPhantom(false)
-
-  widget.onDragEnter = function(w, mousePos)
-    return startTargetDrag(w, mousePos)
-  end
-
-  widget.onDragMove = function(w, mousePos)
-    return moveTarget(mousePos)
-  end
-
-  widget.onDragLeave = function()
-    return stopTargetDrag()
-  end
-
-  widget.onMousePress = function(w, mousePos, button)
-    return startTargetDrag(w, mousePos)
-  end
-
-  widget.onMouseMove = function(w, mousePos)
-    return moveTarget(mousePos)
-  end
-
-  widget.onMouseRelease = function()
-    return stopTargetDrag()
-  end
-end
-
 local function disableDrag()
-  targetDragging = false
-  targetMoveRef = nil
-  unhookRootDrag()
-
-  clearDrag(targetUI)
-  clearDrag(targetUI.targetSprite)
-  clearDrag(targetUI.targetName)
-  clearDrag(targetUI.targetDistance)
-  clearDrag(targetUI.targetHpBar)
-
+  targetUI.onDragEnter = nil
+  targetUI.onDragMove = nil
   targetUI:setFocusable(false)
   targetUI:setPhantom(true)
   targetUI:setDraggable(false)
@@ -6225,11 +6045,40 @@ local function enableDrag()
   targetUI:setDraggable(true)
   targetUI:setOpacity(1.00)
 
-  applyDrag(targetUI)
-  applyDrag(targetUI.targetSprite)
-  applyDrag(targetUI.targetName)
-  applyDrag(targetUI.targetDistance)
-  applyDrag(targetUI.targetHpBar)
+  targetUI.onDragEnter = function(widget, mousePos)
+    widget:breakAnchors()
+
+    widget.movingReference = {
+      x = mousePos.x - widget:getX(),
+      y = mousePos.y - widget:getY()
+    }
+
+    return true
+  end
+
+  targetUI.onDragMove = function(widget, mousePos)
+    local parent = widget:getParent()
+    if not parent or not parent.getRect then return true end
+
+    local r = parent:getRect()
+    local ref = widget.movingReference or { x = 0, y = 0 }
+
+    local x = mousePos.x - ref.x
+    local y = mousePos.y - ref.y
+
+    x = math.min(math.max(r.x, x), r.x + r.width - widget:getWidth())
+    y = math.min(math.max(r.y, y), r.y + r.height - widget:getHeight())
+
+    widget:move(x, y)
+
+    toolsStorage[panelName].targetInfoPos = {
+      x = x,
+      y = y
+    }
+
+    saveTargetPos()
+    return true
+  end
 end
 
 local function sqmDistance(a, b)
@@ -6244,6 +6093,7 @@ end
 applyTargetPos()
 
 local lastPressed = nil
+local lastSavePos = 0
 
 if isMobile() then
   enableDrag()
@@ -6255,18 +6105,12 @@ end
 
 macro(100, function()
   if not hudMasterOn() or not hudSwitchOn("targetInfo") then
-    if targetUI:isVisible() then
-      stopTargetDrag()
-      targetUI:hide()
-    end
+    if targetUI:isVisible() then targetUI:hide() end
     return
   end
 
   if not g_game.isAttacking() then
-    if targetUI:isVisible() then
-      stopTargetDrag()
-      targetUI:hide()
-    end
+    if targetUI:isVisible() then targetUI:hide() end
     return
   end
 
@@ -6293,9 +6137,13 @@ macro(100, function()
     lastPressed = pressed
   end
 
+  if pressed and now - lastSavePos > 500 then
+    saveTargetPos()
+    lastSavePos = now
+  end
+
   local target = g_game.getAttackingCreature and g_game.getAttackingCreature() or nil
   if not target then
-    stopTargetDrag()
     targetUI:hide()
     return
   end
