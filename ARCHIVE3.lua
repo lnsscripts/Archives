@@ -160,7 +160,7 @@ MainWindow
 ]=], g_ui.getRootWidget())
 settingsInterface:hide()
 
-if g_app and g_app.isMobile and g_app.isMobile() then
+if modules._G.g_app.isMobile() then
   settingsInterface:setSize("220 270")
 end
 
@@ -665,7 +665,7 @@ MainWindow
 
 utilityInterface:hide()
 
-if g_app and g_app.isMobile and g_app.isMobile() then
+if modules._G.g_app.isMobile() then
   utilityInterface:setSize("478 355")
 end
 
@@ -4942,7 +4942,7 @@ MainWindow
 
 warnInterface:hide()
 
-if g_app and g_app.isMobile and g_app.isMobile() then
+if modules._G.g_app.isMobile() then
   equipInterface:setSize("430 425")
 end
 
@@ -5993,11 +5993,11 @@ UIWindow
 targetUI:hide()
 
 local function isMobile()
-  return g_app and type(g_app.isMobile) == "function" and g_app:isMobile()
+  return modules._G.g_app.isMobile()
 end
 
 local function isMoveKeyPressed()
-  if isMobile() then
+  if modules._G.g_app.isMobile() then
     return true
   end
 
@@ -6097,7 +6097,7 @@ applyTargetPos()
 local lastPressed = nil
 local lastSavePos = 0
 
-if isMobile() then
+if modules._G.g_app.isMobile() then
   enableDrag()
   lastPressed = true
 else
