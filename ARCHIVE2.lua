@@ -1199,6 +1199,18 @@ local EQM_IS_OLD_CLIENT = g_game.getClientVersion() < 960
 local EQM_ACTION_DELAY = EQM_IS_OLD_CLIENT and 250 or 0
 local eqmNextAction = 0
 
+local function eqmFullTankIsOn()
+  if type(isLnsFullTankActive) == "function" then
+    return isLnsFullTankActive() == true
+  end
+
+  return lnsFullTankActive == true
+end
+
+local function eqmSkipFullTankSlot(part)
+  return eqmFullTankIsOn() and (part == "neck" or part == "finger")
+end
+    
 local function eqm_now()
   if g_clock and type(g_clock.millis) == "function" then return g_clock.millis() end
   if now then return now end
@@ -1515,16 +1527,18 @@ local function eqm_applyResolvedOldClient(resolvedItems)
   end
 
   for _, part in ipairs(EQM_EQUIP_ORDER) do
-    local wantedId = tonumber(resolvedItems[part]) or 0
+    if not eqmSkipFullTankSlot(part) then
+      local wantedId = tonumber(resolvedItems[part]) or 0
 
-    -- slot nao configurado = nao mexe
-    if wantedId > 0 then
-      local slotConst = EQM_SLOT_CONST[part]
-      local currentId = eqm_getSlotId(slotConst)
+      -- slot nao configurado = nao mexe
+      if wantedId > 0 then
+        local slotConst = EQM_SLOT_CONST[part]
+        local currentId = eqm_getSlotId(slotConst)
 
-      if currentId ~= wantedId then
-        if eqm_equipToSlot(wantedId, slotConst) then
-          return true
+        if currentId ~= wantedId then
+          if eqm_equipToSlot(wantedId, slotConst) then
+            return true
+          end
         end
       end
     end
@@ -1539,19 +1553,21 @@ local function eqm_applyResolvedNewClient(resolvedItems)
   local changed = false
 
   for _, part in ipairs(EQM_EQUIP_ORDER) do
-    local wantedId = tonumber(resolvedItems[part]) or 0
+    if not eqmSkipFullTankSlot(part) then
+      local wantedId = tonumber(resolvedItems[part]) or 0
 
-    -- slot nao configurado = nao mexe
-    if wantedId > 0 then
-      local slotConst = EQM_SLOT_CONST[part]
-      local currentId = eqm_getSlotId(slotConst)
+      -- slot nao configurado = nao mexe
+      if wantedId > 0 then
+        local slotConst = EQM_SLOT_CONST[part]
+        local currentId = eqm_getSlotId(slotConst)
 
-      if currentId ~= wantedId then
-        pcall(function()
-          g_game.equipItemId(wantedId)
-        end)
+        if currentId ~= wantedId then
+          pcall(function()
+            g_game.equipItemId(wantedId)
+          end)
 
-        changed = true
+          changed = true
+        end
       end
     end
   end
@@ -2939,11 +2955,12 @@ local function processAmuletSwap(index, row)
 end
 
 local function fullTankIsOn()
-  return smartSwapStorage
-    and smartSwapStorage.lnsFullTank
-    and smartSwapStorage.lnsFullTank.enabled == true
-end
+  if type(isLnsFullTankActive) == "function" then
+    return isLnsFullTankActive() == true
+  end
 
+  return lnsFullTankActive == true
+end
 macro(50, function()
   if fullTankIsOn() then return end
   if not smartSwapStorage[switchSwap] or smartSwapStorage[switchSwap].enabled ~= true then return end
