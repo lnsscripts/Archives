@@ -5913,6 +5913,8 @@ end)
 --==================================================
 -- TARGET INFO
 --==================================================
+print("tgt att")
+
 local targetLifeColors = {
   { percent = 35, color = "red" },
   { percent = 75, color = "yellow" },
