@@ -3689,6 +3689,9 @@ if rootWidget then
   autoPartyListWindow = UI.createWindow("AutoPartyListWindow", rootWidget)
   autoPartyListWindow:hide()
 
+  if modules._G.g_app.isMobile() then
+    autoPartyListWindow:setSize("430 405")
+  end
 
   local function WParty(root, id)
     if not root or not id then return nil end
