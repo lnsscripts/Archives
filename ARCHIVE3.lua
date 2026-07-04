@@ -6281,6 +6281,10 @@ end)
 -- MANAGER ATTACKBOT - LISTA SPELL/RUNE + CD
 --==================================================
 
+toolsStorage = toolsStorage or {}
+panelName = panelName or "default"
+toolsStorage[panelName] = toolsStorage[panelName] or {}
+
 toolsStorage[panelName].managerAttackbotPos = toolsStorage[panelName].managerAttackbotPos or { x = 0, y = 0 }
 toolsStorage[panelName].managerAttackbotMinimized = toolsStorage[panelName].managerAttackbotMinimized or false
 
@@ -6318,6 +6322,7 @@ MiniWindow
 ]], g_ui.getRootWidget())
 
 managerAttackUI:hide()
+
 local managerAttackRow = [[
 Panel
   height: 25
@@ -6372,31 +6377,41 @@ Panel
 ]]
 
 local function managerAtkSave()
-  if type(saveAttackBotChar) == "function" then
-    saveAttackBotChar()
-  else
-    saveToolsGlobal()
-  end
+  storage = storage or {}
+  storage.LNSAttackBotGlobal = type(storage.LNSAttackBotGlobal) == "table" and storage.LNSAttackBotGlobal or {}
 end
 
+local function managerAtkStorage()
+  storage = storage or {}
+  storage.LNSAttackBotGlobal = type(storage.LNSAttackBotGlobal) == "table" and storage.LNSAttackBotGlobal or {}
+
+  storage.LNSAttackBotGlobal.attackBotProfiles =
+    type(storage.LNSAttackBotGlobal.attackBotProfiles) == "table" and storage.LNSAttackBotGlobal.attackBotProfiles or {
+      activeProfile = 1,
+      profiles = {}
+    }
+
+  return storage.LNSAttackBotGlobal
+end
+
+local function managerAtkProfileIndex()
+  local st = managerAtkStorage()
+  return math.max(1, math.min(5, tonumber(st.attackBotProfiles.activeProfile) or 1))
+end
 
 local function managerAtkProfile()
-  toolsStorage.attackBotProfiles = toolsStorage.attackBotProfiles or {
-    activeProfile = 1,
-    profiles = {}
-  }
+  local st = managerAtkStorage()
+  local idx = managerAtkProfileIndex()
 
-  local idx = math.max(1, math.min(5, tonumber(toolsStorage.attackBotProfiles.activeProfile) or 1))
-
-  toolsStorage.attackBotProfiles.profiles[idx] =
-    toolsStorage.attackBotProfiles.profiles[idx] or {
+  st.attackBotProfiles.profiles[idx] =
+    type(st.attackBotProfiles.profiles[idx]) == "table" and st.attackBotProfiles.profiles[idx] or {
       main = {},
       attacks = {}
     }
 
-  local p = toolsStorage.attackBotProfiles.profiles[idx]
-  p.main = p.main or {}
-  p.attacks = p.attacks or {}
+  local p = st.attackBotProfiles.profiles[idx]
+  p.main = type(p.main) == "table" and p.main or {}
+  p.attacks = type(p.attacks) == "table" and p.attacks or {}
 
   return p
 end
@@ -6442,9 +6457,9 @@ end
 
 local function managerAtkCooldownText(data)
   local cd = tonumber(data.nextCast) or 0
+
   if cd > now then
-    local left = math.ceil((cd - now) / 1000)
-    return tostring(left) .. "s"
+    return tostring(math.ceil((cd - now) / 1000)) .. "s"
   end
 
   return nil
@@ -6468,7 +6483,6 @@ local function managerAtkUpdateRow(row, data)
   end
 end
 
-
 local function managerAtkToggle(index, row)
   local p = managerAtkProfile()
   local atk = p.attacks and p.attacks[index]
@@ -6485,6 +6499,8 @@ local function managerAtkToggle(index, row)
 end
 
 local managerRows = {}
+local lastManagerAttackCount = 0
+local lastManagerAttackProfile = 0
 
 local function managerAtkRefresh()
   managerAtkClear()
@@ -6534,7 +6550,9 @@ local function managerAtkRefresh()
       index = index
     })
   end
+
   lastManagerAttackCount = #(profile.attacks or {})
+  lastManagerAttackProfile = managerAtkProfileIndex()
 end
 
 local function managerAtkUpdateCooldowns()
@@ -6572,7 +6590,9 @@ local function managerAtkSavePos()
     y = p.y
   }
 
-  saveHudChar()
+  if type(saveHudChar) == "function" then
+    saveHudChar()
+  end
 end
 
 managerAttackUI.onDragEnter = function(widget, mousePos)
@@ -6636,7 +6656,9 @@ local function managerAtkSetMinimized(state)
     managerAtkRefresh()
   end
 
-  managerAtkSave()
+  if type(saveHudChar) == "function" then
+    saveHudChar()
+  end
 end
 
 schedule(100, function()
@@ -6684,29 +6706,13 @@ macro(300, function()
   end
 end)
 
-local lastManagerAttackCount = 0
-
 macro(1000, function()
   if not managerAttackUI:isVisible() then return end
   if toolsStorage[panelName].managerAttackbotMinimized then return end
 
-  local p = managerAtkProfile()
-  local count = #(p.attacks or {})
-
-  if count ~= lastManagerAttackCount then
-    lastManagerAttackCount = count
-    managerAtkRefresh()
-  else
-    managerAtkUpdateCooldowns()
-  end
+  managerAtkRefresh()
+  managerAtkUpdateCooldowns()
 end)
-
-macro(300, function()
-  if type(LNS_SET_BOSS_WINDOW_VISIBLE) ~= "function" then return end
-
-  LNS_SET_BOSS_WINDOW_VISIBLE(hudSwitchOn("autoBoss") == true)
-end)
-
 end)
 
 lnsRunBlock("FUNCTION CAVEBOT", function()
