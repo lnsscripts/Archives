@@ -5985,7 +5985,7 @@ UIWindow
 targetUI:hide()
 
 local function isMoveKeyPressed()
-  if g_app and type(g_app.isMobile) == "function" and g_app:isMobile() then
+  if g_app and g_app.isMobile and g_app.isMobile() then
     return true
   end
 
