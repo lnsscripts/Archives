@@ -56,7 +56,7 @@ Panel
     text: Settings and Tools
 ]])
 settingsButton:setId(switchTravel)
-
+    
 settingsInterface = setupUI([=[
 MainWindow
   id: mainPanel
@@ -161,7 +161,7 @@ MainWindow
 settingsInterface:hide()
 
 if modules._G.g_app.isMobile() then
-  settingsInterface:setSize("220 270")
+  settingsInterface:setSize("220 300")
 end
 
 settingsButton.settings.onClick = function()
