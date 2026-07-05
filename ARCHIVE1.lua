@@ -710,7 +710,7 @@ comboButton.settings.onClick = function()
   end
 end
 comboInterface.closePanel.onClick = function() comboInterface:hide() end
-
+    
 spellAddPanel = setupUI([=[
 MainWindow
   id: spellAddPanel
@@ -891,6 +891,10 @@ MainWindow
 ]=], g_ui.getRootWidget())
 spellAddPanel:hide()
 
+if modules._G.g_app.isMobile() then
+  spellAddPanel:setSize("260 325")
+end
+    
 runeAddPanel = setupUI([=[
 MainWindow
   id: runeAddPanel
@@ -993,7 +997,10 @@ MainWindow
     font: verdana-11px-rounded
 ]=], g_ui.getRootWidget())
 runeAddPanel:hide()
-
+if modules._G.g_app.isMobile() then
+  runeAddPanel:setSize("220 230")
+end
+    
 profileNamePanel = setupUI([=[
 MainWindow
   id: attackProfileNamePanel
