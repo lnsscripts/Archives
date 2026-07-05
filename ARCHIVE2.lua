@@ -7286,6 +7286,10 @@ panelScrollImbue:hide()
 panelScrollImbue.imbueBlank.idBlank:setItemId(51442)
 panelScrollImbue.imbueItems.idItem:setItemId(28719)
 
+if modules._G.g_app.isMobile() then
+  panelScrollImbue:setSize("410 370")
+end
+
 panelScrollImbue.closePanel.onClick = function()
   panelScrollImbue:hide()
 end
