@@ -39,7 +39,7 @@ local function lnsRunBlock(name, fn)
 end
 
 lnsRunBlock("ATTACKBOT", function()
-  ----- ATTACKBOT
+----- ATTACKBOT
 -- Storage global unico do AttackBot.
 -- Usa somente storage.LNSAttackBotGlobal.
 storage = storage or {}
@@ -168,8 +168,6 @@ attackBotStorage[switchCombo] = attackBotStorage[switchCombo] or { enabled = fal
 comboButton = setupUI([[
 Panel
   height: 40
-  margin-top: -5
-      
   BotSwitch
     id: title
     anchors.top: parent.top
@@ -710,7 +708,7 @@ comboButton.settings.onClick = function()
   end
 end
 comboInterface.closePanel.onClick = function() comboInterface:hide() end
-    
+
 spellAddPanel = setupUI([=[
 MainWindow
   id: spellAddPanel
@@ -890,11 +888,10 @@ MainWindow
     font: verdana-11px-rounded
 ]=], g_ui.getRootWidget())
 spellAddPanel:hide()
-
 if modules._G.g_app.isMobile() then
   spellAddPanel:setSize("260 325")
 end
-    
+
 runeAddPanel = setupUI([=[
 MainWindow
   id: runeAddPanel
@@ -1000,7 +997,7 @@ runeAddPanel:hide()
 if modules._G.g_app.isMobile() then
   runeAddPanel:setSize("220 230")
 end
-    
+ 
 profileNamePanel = setupUI([=[
 MainWindow
   id: attackProfileNamePanel
@@ -1646,7 +1643,7 @@ local function nowMs()
   if g_clock and g_clock.millis then return g_clock.millis() end
   return (os.time() * 1000) + math.floor((os.clock() * 1000) % 1000)
 end
-local function setSafeLabel(w, v) if not w then return end w:setColor(v and "#00FF00" or "#FF4040") w:setText(v and "[S]" or "[N]") end
+local function setSafeLabel(w, v) if not w then return end w:setColor(v and "#00FF00" or "#FF4040") w:setText(v and "[Safe]" or "[Unsafe]") end
 local function spellInfo(d,m) d=tonumber(d) or 1 m=tonumber(m) or 1 return "["..d.." Sqm | +"..m.." Mob(s)"..(m>1 and "s" or "").."]" end
 local function runeInfo(d,m) d=tonumber(d) or 1 m=tonumber(m) or 1 return "["..d.." Sqm | +"..m.." Mob(s)"..(m>1 and "s" or "").."]" end
 
@@ -1673,6 +1670,137 @@ local function setItemIcon(widget, itemId)
   widget:setVisible(true)
   if widget.setItemId then return widget:setItemId(itemId) end
   if widget.setItem and Item and Item.create then widget:setItem(Item.create(itemId, 1)) end
+end
+
+
+--==================================================
+-- SPELL ICONS
+-- Puxa o sprite da magia direto do modulo game_spelllist,
+-- igual ao Max Attack, usando o nome/words da spell.
+--==================================================
+local attackBotSpellIconFile = type(SpelllistSettings) == "table" and SpelllistSettings.Default and SpelllistSettings.Default.iconFile or "/images/game/spells/defaultspells"
+local attackBotSpellIconCache = {}
+local attackBotSpellWordsToName = {}
+local attackBotSpellIconCacheReady = false
+
+local function attackBotNormalizeSpellText(textValue)
+  return tostring(textValue or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
+end
+
+local function refreshAttackBotSpellIconCache()
+  attackBotSpellWordsToName = {}
+
+  if type(SpellInfo) == "table" then
+    for _, spellGroup in pairs(SpellInfo) do
+      if type(spellGroup) == "table" then
+        for spellName, spellInfo in pairs(spellGroup) do
+          if type(spellInfo) == "table" and spellInfo.words then
+            attackBotSpellWordsToName[attackBotNormalizeSpellText(spellInfo.words)] = spellName
+          end
+        end
+      end
+    end
+  end
+
+  attackBotSpellIconCache = {}
+
+  local spellListModule = modules and modules.game_spelllist
+  if spellListModule and spellListModule.spellList then
+    pcall(function()
+      if spellListModule.updateSpelllist then
+        spellListModule.updateSpelllist()
+      end
+    end)
+
+    local spellWidgets = {}
+    pcall(function()
+      spellWidgets = spellListModule.spellList:getChildren() or {}
+    end)
+
+    for _, spellWidget in ipairs(spellWidgets or {}) do
+      local spellWidgetText = ""
+      pcall(function()
+        spellWidgetText = spellWidget:getText()
+      end)
+
+      local spellClip
+      local clipWidth = 0
+      pcall(function()
+        spellClip = spellWidget:getImageClip()
+        clipWidth = spellClip and spellClip.width or 0
+      end)
+
+      if spellWidgetText ~= "" and spellClip and clipWidth > 0 then
+        attackBotSpellIconCache[#attackBotSpellIconCache + 1] = {
+          text = attackBotNormalizeSpellText(spellWidgetText),
+          clip = spellClip,
+          x = spellClip.x or 0,
+          y = spellClip.y or 0
+        }
+      end
+    end
+
+    if #attackBotSpellIconCache > 0 then
+      attackBotSpellIconCacheReady = true
+    end
+  end
+end
+
+local function findAttackBotSpellIconClip(spellText)
+  if not attackBotSpellIconCacheReady then
+    refreshAttackBotSpellIconCache()
+  end
+
+  local normalizedSpellText = attackBotNormalizeSpellText(spellText)
+  local fallbackClip
+
+  for _, iconData in ipairs(attackBotSpellIconCache) do
+    if iconData.text:find("'" .. normalizedSpellText .. "'", 1, true) then
+      if iconData.x ~= 0 or iconData.y ~= 0 then
+        return iconData.clip
+      end
+
+      fallbackClip = fallbackClip or iconData.clip
+    end
+  end
+
+  if fallbackClip then
+    return fallbackClip
+  end
+
+  local spellNameFromWords = attackBotSpellWordsToName[normalizedSpellText]
+  if spellNameFromWords then
+    local normalizedSpellName = attackBotNormalizeSpellText(spellNameFromWords)
+
+    for _, iconDataByName in ipairs(attackBotSpellIconCache) do
+      if iconDataByName.text:find(normalizedSpellName, 1, true) then
+        if iconDataByName.x ~= 0 or iconDataByName.y ~= 0 then
+          return iconDataByName.clip
+        end
+
+        fallbackClip = fallbackClip or iconDataByName.clip
+      end
+    end
+  end
+
+  return fallbackClip
+end
+
+local function setAttackBotSpellIcon(widget, spellText)
+  if not widget then return end
+
+  local spellClip = findAttackBotSpellIconClip(spellText)
+  if not spellClip then
+    if widget.hide then widget:hide() elseif widget.setVisible then widget:setVisible(false) end
+    return
+  end
+
+  pcall(function()
+    widget:setImageSource(attackBotSpellIconFile)
+    widget:setImageClip(spellClip)
+  end)
+
+  if widget.show then widget:show() elseif widget.setVisible then widget:setVisible(true) end
 end
 
 local function bindSwitch(widget, key)
@@ -1749,17 +1877,27 @@ UIWidget
     anchors.verticalCenter: parent.verticalCenter
     margin-left: 4
     margin-top: 0
-    width: 20
-    height: 20
+    width: 18
+    height: 18
     text-align: center
     color: white
     image-source: /images/ui/button_rounded
 
+  Panel
+    id: iconSpell
+    anchors.left: enabled.right
+    anchors.verticalCenter: parent.verticalCenter
+    margin-left: 4
+    size: 27 27
+    visible: false
+    phantom: true
+    focusable: false
+
   Label
     id: spellName
-    anchors.left: enabled.right
+    anchors.left: iconSpell.right
     anchors.top: parent.top
-    margin-left: 6
+    margin-left: 8
     margin-top: 4
     color: orange
     text: ""
@@ -1773,13 +1911,13 @@ UIWidget
     margin-top: 2
     color: #c8c8c8
     text: ""
-    font: verdana-11px-rounded
+    font: cipsoftFont
     text-auto-resize: true
 
   Label
     id: safeText
-    anchors.left: distText.right
-    anchors.verticalCenter: distText.verticalCenter
+    anchors.left: spellName.right
+    anchors.verticalCenter: spellName.verticalCenter
     margin-left: 4
     color: #ff5a5a
     text: ""
@@ -1828,8 +1966,8 @@ UIWidget
     anchors.verticalCenter: parent.verticalCenter
     margin-left: 4
     margin-top: 0
-    width: 20
-    height: 20
+    width: 18
+    height: 18
     text-align: center
     color: white
     image-source: /images/ui/button_rounded
@@ -1845,17 +1983,18 @@ UIWidget
   Label
     id: distText
     anchors.left: icon.right
-    anchors.verticalCenter: parent.verticalCenter
-    margin-left: 1
+    anchors.bottom: prev.bottom
+    margin-left: 4
+    margin-bottom: 4
     color: #c8c8c8
     text: ""
-    font: verdana-11px-rounded
+    font: cipsoftFont
     text-auto-resize: true
 
   Label
     id: safeText
-    anchors.left: distText.right
-    anchors.verticalCenter: distText.verticalCenter
+    anchors.left: icon.right
+    anchors.top: icon.top
     margin-left: 4
     color: #ff5a5a
     text: ""
@@ -2165,6 +2304,7 @@ local function createSpellRow(data, index)
     if cfg.attacks[index] then cfg.attacks[index].enabled = state end
     saveAttackBotStorage()
   end
+  setAttackBotSpellIcon(row.iconSpell, data.spell)
   row.spellName:setText(tostring(data.spell or ""))
   row.distText:setText(spellInfo(data.distance, data.mobs))
   setSafeLabel(row.safeText, data.safe)
@@ -2623,14 +2763,27 @@ macro(100, function()
   end
 end)
 
-local worldName = g_game.getWorldName() or ""
-local WORLD_COMBAT_LOCK = 1000
-if worldName == "Telaria" or worldName == "Eternia" or worldName == "Aurera-Global" then
-  WORLD_COMBAT_LOCK = 2050
-end
+local WORLD_COMBAT_LOCK = 300
+local attackGroupReadyAt = 0
+local EXTRA_GROUP_DELAY = 200
 
 local combatGlobalUntil = 0
 local lastRuneGlobal = 0
+
+local function isAttackGroupCooldownActive()
+  local isCooldownActive = false
+
+  pcall(function()
+    local cooldownModule = modules and modules.game_cooldown
+
+    if cooldownModule and cooldownModule.isGroupCooldownIconActive then
+      isCooldownActive = cooldownModule.isGroupCooldownIconActive(1) == true
+    end
+  end)
+
+  return isCooldownActive
+end
+
 
 local runeCooldownIcon = {
   [3155] = 21,
@@ -3245,7 +3398,17 @@ macro(50, function()
     end
   end
 
-  -- respeita exhaust/global
+  local groupCooldownActive = isAttackGroupCooldownActive()
+
+  if groupCooldownActive then
+    attackGroupReadyAt = now + EXTRA_GROUP_DELAY
+    return
+  end
+
+  if now < attackGroupReadyAt then
+    return
+  end
+
   if combatGlobalUntil > now then
     return
   end
