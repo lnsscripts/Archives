@@ -3834,7 +3834,7 @@ SpellRow < Panel
     anchors.left: iconSpell.right
     anchors.right: parent.right
     anchors.top: parent.top
-    font: verdana-11px-rounded
+    font: verdana-9px
     margin-left: 3
     margin-right: 4
     margin-top: 3
