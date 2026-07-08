@@ -3470,7 +3470,7 @@ end)
 end)
 
 lnsRunBlock("HEALING", function()
-  storage = storage or {}
+storage = storage or {}
 storage.LNSHealingGlobal = type(storage.LNSHealingGlobal) == "table" and storage.LNSHealingGlobal or {}
 
 local healingStorage = storage.LNSHealingGlobal
@@ -3817,22 +3817,36 @@ SpellRow < Panel
     background-color: #5d5d5d
     border: 1 #808080
 
+  Panel
+    id: iconSpell
+    anchors.left: parent.left
+    anchors.top: parent.top
+    margin-left: 4
+    margin-top: 2
+    size: 35 35
+    border: 1 gray
+    visible: false
+    phantom: true
+    focusable: false
+
   BotTextEdit
     id: spellText
-    anchors.left: parent.left
+    anchors.left: iconSpell.right
     anchors.right: parent.right
     anchors.top: parent.top
     font: verdana-11px-rounded
-    margin-left: 4
+    margin-left: 3
     margin-right: 4
     margin-top: 3
     tooltip: Insert Spell Here
 
   HorizontalScrollBar
     id: hpScroll
-    anchors.left: prev.left
-    anchors.right: prev.right
+    anchors.left: iconSpell.right
+    anchors.right: parent.right
     anchors.top: prev.bottom
+    margin-left: 4
+    margin-right: 4
     margin-top: 3
     minimum: 0
     maximum: 100
@@ -3851,7 +3865,7 @@ SpellRow < Panel
 
   Label
     id: hpText
-    anchors.left: hpScroll.left
+    anchors.left: iconSpell.left
     anchors.top: hpScroll.bottom
     margin-top: 2
     color: white
@@ -3860,7 +3874,7 @@ SpellRow < Panel
 
   Label
     id: manaText
-    anchors.left: hpScroll.left
+    anchors.left: iconSpell.left
     anchors.top: hpText.bottom
     margin-top: 2
     color: white
@@ -3959,6 +3973,161 @@ local function resolveSpellMana(spellName)
   return SPELL_MANA_COST[spellName] or 0
 end
 
+
+--==================================================
+-- SPELL ICONS
+-- Puxa o sprite da magia direto do modulo game_spelllist,
+-- usando o nome/words da spell, igual no Max Attack.
+--==================================================
+local healingSpellIconFile = type(SpelllistSettings) == "table" and SpelllistSettings.Default and SpelllistSettings.Default.iconFile or "/images/game/spells/defaultspells"
+local healingSpellIconCache = {}
+local healingSpellWordsToName = {}
+local healingSpellIconCacheReady = false
+local healingSpellIconAlias = {
+  ["exura med ico"] = "exura ico",
+  ["exura max vita"] = "exura vita"
+}
+
+local function healingNormalizeSpellText(textValue)
+  return tostring(textValue or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
+end
+
+local function refreshHealingSpellIconCache()
+  healingSpellWordsToName = {}
+
+  if type(SpellInfo) == "table" then
+    for _, spellGroup in pairs(SpellInfo) do
+      if type(spellGroup) == "table" then
+        for spellName, spellInfo in pairs(spellGroup) do
+          if type(spellInfo) == "table" and spellInfo.words then
+            healingSpellWordsToName[healingNormalizeSpellText(spellInfo.words)] = spellName
+          end
+        end
+      end
+    end
+  end
+
+  healingSpellIconCache = {}
+
+  local spellListModule = modules and modules.game_spelllist
+  if spellListModule and spellListModule.spellList then
+    pcall(function()
+      if spellListModule.updateSpelllist then
+        spellListModule.updateSpelllist()
+      end
+    end)
+
+    local spellWidgets = {}
+    pcall(function()
+      spellWidgets = spellListModule.spellList:getChildren() or {}
+    end)
+
+    for _, spellWidget in ipairs(spellWidgets or {}) do
+      local spellWidgetText = ""
+      pcall(function()
+        spellWidgetText = spellWidget:getText()
+      end)
+
+      local spellClip
+      local clipWidth = 0
+      pcall(function()
+        spellClip = spellWidget:getImageClip()
+        clipWidth = spellClip and spellClip.width or 0
+      end)
+
+      if spellWidgetText ~= "" and spellClip and clipWidth > 0 then
+        healingSpellIconCache[#healingSpellIconCache + 1] = {
+          text = healingNormalizeSpellText(spellWidgetText),
+          clip = spellClip,
+          x = spellClip.x or 0,
+          y = spellClip.y or 0
+        }
+      end
+    end
+
+    if #healingSpellIconCache > 0 then
+      healingSpellIconCacheReady = true
+    end
+  end
+end
+
+local function findHealingSpellIconClip(spellText)
+  if not healingSpellIconCacheReady then
+    refreshHealingSpellIconCache()
+  end
+
+  local normalizedSpellText = healingNormalizeSpellText(spellText)
+  local fallbackClip
+
+  local function tryFindByText(searchText)
+    if searchText == "" then return nil end
+
+    local localFallback = nil
+
+    for _, iconData in ipairs(healingSpellIconCache) do
+      if iconData.text == searchText or iconData.text:find("'" .. searchText .. "'", 1, true) or iconData.text:find(searchText, 1, true) then
+        if iconData.x ~= 0 or iconData.y ~= 0 then
+          return iconData.clip
+        end
+
+        localFallback = localFallback or iconData.clip
+      end
+    end
+
+    return localFallback
+  end
+
+  fallbackClip = tryFindByText(normalizedSpellText)
+  if fallbackClip then
+    return fallbackClip
+  end
+
+  local aliasText = healingSpellIconAlias[normalizedSpellText]
+  if aliasText then
+    fallbackClip = tryFindByText(healingNormalizeSpellText(aliasText))
+    if fallbackClip then
+      return fallbackClip
+    end
+  end
+
+  local spellNameFromWords = healingSpellWordsToName[normalizedSpellText]
+  if spellNameFromWords then
+    fallbackClip = tryFindByText(healingNormalizeSpellText(spellNameFromWords))
+    if fallbackClip then
+      return fallbackClip
+    end
+  end
+
+  if aliasText then
+    local aliasSpellName = healingSpellWordsToName[healingNormalizeSpellText(aliasText)]
+    if aliasSpellName then
+      fallbackClip = tryFindByText(healingNormalizeSpellText(aliasSpellName))
+      if fallbackClip then
+        return fallbackClip
+      end
+    end
+  end
+
+  return nil
+end
+
+local function setHealingSpellIcon(widget, spellText)
+  if not widget then return end
+
+  local spellClip = findHealingSpellIconClip(spellText)
+  if not spellClip then
+    if widget.hide then widget:hide() elseif widget.setVisible then widget:setVisible(false) end
+    return
+  end
+
+  pcall(function()
+    widget:setImageSource(healingSpellIconFile)
+    widget:setImageClip(spellClip)
+  end)
+
+  if widget.show then widget:show() elseif widget.setVisible then widget:setVisible(true) end
+end
+
 local function getList(kind)
   if kind == "spells" then return panelHealing.flatP.col1.list1 end
   if kind == "hp" then return panelHealing.flatP.col2.list2 end
@@ -4045,6 +4214,7 @@ local function bindSpellRow(row, entry, kind)
   row._entry = entry
 
   row.spellText:setText(entry.spell or "")
+  setHealingSpellIcon(row.iconSpell, entry.spell)
   row.hpScroll:setValue(entry.hp or 80)
   row.hpText:setText("HP <= " .. tostring(entry.hp or 80) .. "%")
   row.manaText:setText("Mana: " .. tostring(entry.mana or 0))
@@ -4066,6 +4236,7 @@ local function bindSpellRow(row, entry, kind)
     entry.spell = formatted
     entry.mana = resolveSpellMana(formatted)
     row.manaText:setText("Mana: " .. tostring(entry.mana))
+    setHealingSpellIcon(row.iconSpell, formatted)
     saveHealingGlobal()
   end
 
