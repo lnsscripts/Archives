@@ -5397,7 +5397,7 @@ end)
 end)
 
 lnsRunBlock("HEALFRIEND", function()
-  storage = storage or {}
+storage = storage or {}
 storage.LNSHealFriendGlobal = storage.LNSHealFriendGlobal or {}
 
 local healFriendStorage = storage.LNSHealFriendGlobal
@@ -5483,11 +5483,24 @@ UIWidget
   background-color: #2a2a2a
   border: 1 #3a3a3a
 
-  Label
-    id: voc
+  CheckBox
+    id: vocCheck
     anchors.left: parent.left
     anchors.verticalCenter: parent.verticalCenter
-    margin-left: 6
+    margin-left: 3
+    size: 14 14
+    text: ""
+    color: gray
+    $checked:
+      color: green
+
+  Label
+    id: voc
+    anchors.left: vocCheck.right
+    anchors.right: up.left
+    anchors.verticalCenter: parent.verticalCenter
+    margin-left: 5
+    margin-right: 2
     color: white
     text: ""
 
@@ -5890,16 +5903,45 @@ if not healFriendStorage.healFriend then
     listPrio = false,
     cureMPFriend = false,
     selectChat = "Default",
-    prioOrder = { "Knight", "Paladin", "Monk", "Mage" }
+    prioOrder = { "Knight", "Paladin", "Monk", "Mage" },
+    prioEnabled = {
+      Knight = true,
+      Paladin = true,
+      Monk = true,
+      Mage = true
+    }
   }
 end
 
 local config = healFriendStorage.healFriend
-config.prioOrder = config.prioOrder or { "Knight", "Paladin", "Monk", "Mage" }
+
+local PRIO_DEFAULT_ORDER = { "Knight", "Paladin", "Monk", "Mage" }
+
+local function newDefaultPrioOrder()
+  return { "Knight", "Paladin", "Monk", "Mage" }
+end
 
 local function saveConfig()
   saveHealFriendChar()
 end
+
+local function normalizePrioConfig()
+  if type(config.prioOrder) ~= "table" or #config.prioOrder ~= 4 then
+    config.prioOrder = newDefaultPrioOrder()
+  end
+
+  config.prioEnabled = type(config.prioEnabled) == "table" and config.prioEnabled or {}
+
+  for _, voc in ipairs(PRIO_DEFAULT_ORDER) do
+    if config.prioEnabled[voc] == nil then
+      config.prioEnabled[voc] = true
+    end
+  end
+
+  saveConfig()
+end
+
+normalizePrioConfig()
 
 sioInterface.selectChat:setCurrentOption(config.selectChat)
 
@@ -5929,19 +5971,27 @@ end
 
 local function rebuildPrioList()
   clearChildren(sioInterface.prioList)
-
-  local fixed = { "Knight", "Paladin", "Monk", "Mage" }
-
-  if type(config.prioOrder) ~= "table" or #config.prioOrder ~= 4 then
-    config.prioOrder = fixed
-    saveConfig()
-  end
+  normalizePrioConfig()
 
   for i = 1, #config.prioOrder do
     local voc = config.prioOrder[i]
     local row = setupUI(prioRowTemplate, sioInterface.prioList)
 
+    local function refreshVocCheck()
+      local enabled = config.prioEnabled[voc] ~= false
+      row.vocCheck:setChecked(enabled)
+      row.voc:setColor(enabled and "white" or "gray")
+    end
+
     row.voc:setText(voc)
+    refreshVocCheck()
+
+    row.vocCheck.onClick = function(widget)
+      config.prioEnabled[voc] = not (config.prioEnabled[voc] == true)
+      widget:setChecked(config.prioEnabled[voc] == true)
+      row.voc:setColor(config.prioEnabled[voc] == true and "white" or "gray")
+      saveConfig()
+    end
 
     row.up.onClick = function()
       swap(config.prioOrder, i, i - 1)
@@ -6190,6 +6240,52 @@ macro(100, function()
     local group = vocGroupFromCode(code)
     if not group then return 9999 end
     return rankMap[group] or 9999
+  end
+
+  local function isAnyVocationDisabled()
+    config.prioEnabled = type(config.prioEnabled) == "table" and config.prioEnabled or {}
+
+    for _, voc in ipairs(PRIO_DEFAULT_ORDER) do
+      if config.prioEnabled[voc] == false then
+        return true
+      end
+    end
+
+    return false
+  end
+
+  local function isVocationEnabledForHeal(creature)
+    if not isAnyVocationDisabled() then
+      return true
+    end
+
+    local code = getVocCodeFromCheckText(creature)
+    local group = vocGroupFromCode(code)
+
+    if not group then
+      return false
+    end
+
+    for _, voc in ipairs(PRIO_DEFAULT_ORDER) do
+      if voc:upper() == group then
+        return config.prioEnabled[voc] ~= false
+      end
+    end
+
+    return false
+  end
+
+  if isAnyVocationDisabled() then
+    local filtered = {}
+
+    for _, t in ipairs(valid) do
+      if isVocationEnabledForHeal(t.creature) then
+        table.insert(filtered, t)
+      end
+    end
+
+    valid = filtered
+    if #valid == 0 then return end
   end
 
   table.sort(valid, function(a, b)
