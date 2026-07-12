@@ -15297,19 +15297,19 @@ local AUTO_ICONS = {
 
   {
     key = "war_full_equip",
-    storageKey = "lnsFullTank",
     itemId = 21435,
     text = "FULL EQ",
-    store = function()
-      return lnsIconsBridgeStorage
+
+    read = function()
+        return isLnsFullTankActive()
     end,
-    getButton = function()
-      return ui and ui.enable
+
+    write = function(state)
+        setFullTankEnabled(state)
     end,
+
     save = function()
-      if type(saveIcons) == "function" then
-        saveIcons(lnsIconsBridgeStorage)
-      end
+        saveFullTank()
     end
   },
 
