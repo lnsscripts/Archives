@@ -6427,7 +6427,7 @@ end)
 end)
 
 lnsRunBlock("CONTROL_FOLLOW", function()
-  local PANEL_NAME = "lnsFollow"
+local PANEL_NAME = "lnsFollow"
 local FOLLOW_SWITCH_ID = "followButton"
 
 local category = "lns"
@@ -6438,7 +6438,7 @@ local ATTACKBOT_SWITCH_ID = "comboButton"
 local MINI_WINDOW_NAME = "ingameScriptWindow"
 local HOLD_STORAGE_KEY = "lnsLeaderHoldMwWg"
 
-local leaderCommandDelay = 200
+local leaderCommandDelay = 50
 local lastLeaderCommand = 0
 local sendLeaderCommand
 
@@ -6505,6 +6505,14 @@ end
 
 local function getUeSpellFromFollow2()
   return normalizeText(getFollow2Db().ueSpell or "")
+end
+
+local function isLocalLeader()
+  local followDb = getFollow2Db()
+  if followDb.isLeader == true then return true end
+
+  local legacy = storage and storage[FOLLOW_SWITCH_ID]
+  return type(legacy) == "table" and legacy.leader == true
 end
 
 local function findWidgetById(id)
@@ -6585,31 +6593,54 @@ end
 local function setAttackBotState(state)
   state = state == true
 
-  controlFollowStorage[ATTACKBOT_SWITCH_ID] = controlFollowStorage[ATTACKBOT_SWITCH_ID] or {}
-  controlFollowStorage[ATTACKBOT_SWITCH_ID].enabled = state
-  saveLeaderControl()
+  -- Usa a mesma função/runtime do botão original do AttackBot.
+  -- Isso evita alterar apenas a animação visual sem ligar o macro de ataque.
+  if type(LNS_SET_ATTACKBOT_STATE) == "function" then
+    local ok, result = pcall(LNS_SET_ATTACKBOT_STATE, state)
+    if ok and result ~= false then
+      return true
+    end
+  end
+
+  -- Fallback para casos em que o AttackBot ainda não expôs a função global.
+  storage.LNSAttackBotGlobal = type(storage.LNSAttackBotGlobal) == "table" and storage.LNSAttackBotGlobal or {}
+  storage.LNSAttackBotGlobal[ATTACKBOT_SWITCH_ID] = storage.LNSAttackBotGlobal[ATTACKBOT_SWITCH_ID] or {}
+  storage.LNSAttackBotGlobal[ATTACKBOT_SWITCH_ID].enabled = state
 
   if comboButton and comboButton.title and comboButton.title.setOn then
     comboButton.title:setOn(state)
   else
     syncSwitchVisual(comboButton, ATTACKBOT_SWITCH_ID, state)
   end
+
+  return true
 end
 
 local function setFollowState(state)
   state = state == true
 
+  -- Usa a função do Follow 2.0 para atualizar storage, runtime, botão,
+  -- cancelar autoWalk e iniciar/parar a lógica imediatamente.
+  if type(LNS_SET_FOLLOW_STATE) == "function" then
+    local ok, result = pcall(LNS_SET_FOLLOW_STATE, state)
+    if ok and result ~= false then
+      return true
+    end
+  end
+
+  -- Fallback compatível caso o Follow 2.0 ainda não tenha sido carregado.
   controlFollowStorage.follow2Panel = controlFollowStorage.follow2Panel or {}
   controlFollowStorage.follow2Panel.enabled = state
 
   controlFollowStorage[FOLLOW_SWITCH_ID] = controlFollowStorage[FOLLOW_SWITCH_ID] or {}
   controlFollowStorage[FOLLOW_SWITCH_ID].enabled = state
 
-  if not state then
-    g_game.cancelFollow()
+  storage[FOLLOW_SWITCH_ID] = storage[FOLLOW_SWITCH_ID] or {}
+  storage[FOLLOW_SWITCH_ID].enabled = state
 
-    if g_game.cancelAttack then
-      -- não cancela ataque, só follow
+  if not state then
+    if g_game and g_game.cancelFollow then
+      g_game.cancelFollow()
     end
 
     if player and player.stopAutoWalk then
@@ -6624,6 +6655,7 @@ local function setFollowState(state)
   end
 
   saveLeaderControl()
+  return true
 end
 
 local function getHoldDb()
@@ -7069,7 +7101,11 @@ sendLeaderCommand = function(text, runLocal)
   local msg = normalizeText(text)
   if msg == "" then return false end
 
-  if runLocal ~= false then
+  -- O personagem marcado como líder apenas ENVIA o comando.
+  -- Ele não executa localmente e também será ignorado pelo onTalk abaixo.
+  local shouldRunLocal = runLocal ~= false and not isLocalLeader()
+
+  if shouldRunLocal then
     executeLeaderCommand(msg)
 
     -- evita executar duas vezes no client que enviou, caso o onTalk também capture a própria fala
@@ -7119,6 +7155,10 @@ end
 
 local function canReadLeaderCommand(name, text)
   if not isControlCommandText(text) then return false end
+
+  -- O client marcado como líder nunca obedece comandos do canal.
+  -- Assim ele não captura e executa a própria mensagem enviada.
+  if isLocalLeader() then return false end
 
   local leaderName = getLeaderNameFromFollow2()
 
@@ -7545,7 +7585,6 @@ butReportTask:setHeight(19)
 butReportTask:setMarginTop(0)
 butReportTask:setFont("verdana-11px-rounded")
 butReportTask:setColor("#EEC900")
-
 end)
 
 lnsRunBlock("FOLLOW", function()
