@@ -5696,41 +5696,11 @@ MainWindow
         opacity: 0.80
 
     BotSwitch
-      id: taskTracker
-      margin-top: 10
-      margin-right: 5
-      width: 25
-      text: Task Ragnar
-      font: verdana-11px-rounded
-      image-source: ""
-      $on:
-        color: green
-        opacity: 1.00
-      $!on:
-        color: white
-        opacity: 0.80
-
-    BotSwitch
       id: comboManager
       margin-top: 10
       margin-right: 5
       width: 25
       text: Manager Attackbot
-      font: verdana-11px-rounded
-      image-source: ""
-      $on:
-        color: green
-        opacity: 1.00
-      $!on:
-        color: white
-        opacity: 0.80
-
-    BotSwitch
-      id: autoBoss
-      margin-top: 10
-      margin-right: 5
-      width: 25
-      text: Auto Boss
       font: verdana-11px-rounded
       image-source: ""
       $on:
@@ -5793,9 +5763,7 @@ end
 
 bindHudSwitch("barLifeMana")
 bindHudSwitch("targetInfo")
-bindHudSwitch("taskTracker")
 bindHudSwitch("comboManager")
-bindHudSwitch("autoBoss")
 
 hudInterface.closePanel.onClick = function()
   hudInterface:hide()
@@ -5916,6 +5884,7 @@ end)
 --==================================================
 -- TARGET INFO
 --==================================================
+
 local targetLifeColors = {
   { percent = 35, color = "red" },
   { percent = 75, color = "yellow" },
@@ -6170,16 +6139,26 @@ macro(100, function()
   targetUI.targetHpBar:setText(hp .. "%")
   targetUI.targetHpBar:setBackgroundColor(getTargetColor(hp))
 end)
+
 --==================================================
 -- MANAGER ATTACKBOT - LISTA SPELL/RUNE + CD
 --==================================================
-
 toolsStorage = toolsStorage or {}
 panelName = panelName or "default"
 toolsStorage[panelName] = toolsStorage[panelName] or {}
 
 toolsStorage[panelName].managerAttackbotPos = toolsStorage[panelName].managerAttackbotPos or { x = 0, y = 0 }
 toolsStorage[panelName].managerAttackbotMinimized = toolsStorage[panelName].managerAttackbotMinimized or false
+toolsStorage[panelName].managerAttackbotSize =
+  type(toolsStorage[panelName].managerAttackbotSize) == "table"
+  and toolsStorage[panelName].managerAttackbotSize
+  or { width = 270, height = 160 }
+
+toolsStorage[panelName].managerAttackbotSize.width =
+  tonumber(toolsStorage[panelName].managerAttackbotSize.width or toolsStorage[panelName].managerAttackbotSize.w) or 270
+
+toolsStorage[panelName].managerAttackbotSize.height =
+  tonumber(toolsStorage[panelName].managerAttackbotSize.height or toolsStorage[panelName].managerAttackbotSize.h) or 160
 
 local managerAttackUI = setupUI([[
 MiniWindow
@@ -6316,6 +6295,30 @@ local function managerAtkClear()
   end
 end
 
+local function managerAtkGetScrollValue()
+  local scroll = managerAttackUI.scroll
+  if not scroll or not scroll.getValue then return 0 end
+
+  local ok, value = pcall(function()
+    return scroll:getValue()
+  end)
+
+  return ok and tonumber(value) or 0
+end
+
+local function managerAtkRestoreScroll(value)
+  value = tonumber(value) or 0
+
+  schedule(10, function()
+    local scroll = managerAttackUI and managerAttackUI.scroll
+    if not scroll or not scroll.setValue then return end
+
+    pcall(function()
+      scroll:setValue(value)
+    end)
+  end)
+end
+
 local function setRowItem(widget, itemId)
   itemId = tonumber(itemId) or 0
   if not widget then return end
@@ -6394,8 +6397,40 @@ end
 local managerRows = {}
 local lastManagerAttackCount = 0
 local lastManagerAttackProfile = 0
+local lastManagerAttackSignature = ""
+
+local function managerAtkBuildSignature(profile)
+  local parts = {}
+
+  for index, attack in ipairs((profile and profile.attacks) or {}) do
+    parts[#parts + 1] = table.concat({
+      tostring(index),
+      tostring(attack.type or ""),
+      tostring(attack.spell or ""),
+      tostring(attack.id or ""),
+      tostring(attack.distance or ""),
+      tostring(attack.mobs or ""),
+      attack.safe == true and "1" or "0"
+    }, "|")
+  end
+
+  return table.concat(parts, "\30")
+end
+
+local function managerAtkNeedsRefresh()
+  local profile = managerAtkProfile()
+  local count = #(profile.attacks or {})
+  local profileIndex = managerAtkProfileIndex()
+  local signature = managerAtkBuildSignature(profile)
+
+  return count ~= lastManagerAttackCount
+      or profileIndex ~= lastManagerAttackProfile
+      or signature ~= lastManagerAttackSignature
+end
 
 local function managerAtkRefresh()
+  local savedScrollValue = managerAtkGetScrollValue()
+
   managerAtkClear()
   managerRows = {}
 
@@ -6446,6 +6481,9 @@ local function managerAtkRefresh()
 
   lastManagerAttackCount = #(profile.attacks or {})
   lastManagerAttackProfile = managerAtkProfileIndex()
+  lastManagerAttackSignature = managerAtkBuildSignature(profile)
+
+  managerAtkRestoreScroll(savedScrollValue)
 end
 
 local function managerAtkUpdateCooldowns()
@@ -6520,11 +6558,64 @@ managerAttackUI.onDragLeave = function()
   return true
 end
 
+local managerMinimizedHeight = 25
+local managerMinimumWidth = 180
+local managerMinimumHeight = 80
+
+local savedManagerSize = toolsStorage[panelName].managerAttackbotSize
+local managerNormalWidth = math.max(managerMinimumWidth, tonumber(savedManagerSize.width) or 270)
+local managerNormalHeight = math.max(managerMinimumHeight, tonumber(savedManagerSize.height) or 160)
+local managerLastWidth = managerNormalWidth
+local managerLastHeight = managerNormalHeight
+local managerSizeSaveDeadline = 0
+
+local function managerAtkClock()
+  if g_clock and g_clock.millis then
+    return g_clock.millis()
+  end
+
+  return tonumber(now) or 0
+end
+
+local function managerAtkApplySize()
+  managerAttackUI:setWidth(managerNormalWidth)
+  managerAttackUI:setHeight(managerNormalHeight)
+end
+
+local function managerAtkStoreCurrentSize(forceSave, ignoreMinimizedState)
+  if toolsStorage[panelName].managerAttackbotMinimized == true and ignoreMinimizedState ~= true then
+    return
+  end
+
+  local width = math.max(managerMinimumWidth, tonumber(managerAttackUI:getWidth()) or managerNormalWidth)
+  local height = math.max(managerMinimumHeight, tonumber(managerAttackUI:getHeight()) or managerNormalHeight)
+
+  if width ~= managerLastWidth or height ~= managerLastHeight then
+    managerLastWidth = width
+    managerLastHeight = height
+    managerNormalWidth = width
+    managerNormalHeight = height
+
+    toolsStorage[panelName].managerAttackbotSize = {
+      width = width,
+      height = height
+    }
+
+    managerSizeSaveDeadline = managerAtkClock() + 600
+  end
+
+  if forceSave == true or (managerSizeSaveDeadline > 0 and managerAtkClock() >= managerSizeSaveDeadline) then
+    managerSizeSaveDeadline = 0
+
+    if type(saveHudChar) == "function" then
+      saveHudChar()
+    end
+  end
+end
+
+managerAtkApplySize()
 managerAtkApplyPos()
 managerAtkRefresh()
-
-local managerNormalHeight = 160
-local managerMinimizedHeight = 25
 
 local function managerAtkSetMinimized(state)
   state = state == true
@@ -6532,7 +6623,9 @@ local function managerAtkSetMinimized(state)
   toolsStorage[panelName].managerAttackbotMinimized = state
 
   if state then
-    managerNormalHeight = managerAttackUI:getHeight() > managerMinimizedHeight and managerAttackUI:getHeight() or managerNormalHeight
+    if managerAttackUI:getHeight() > managerMinimizedHeight then
+      managerAtkStoreCurrentSize(true, true)
+    end
 
     if managerAttackUI.list then managerAttackUI.list:hide() end
     if managerAttackUI.scroll then managerAttackUI.scroll:hide() end
@@ -6540,6 +6633,7 @@ local function managerAtkSetMinimized(state)
 
     managerAttackUI:setHeight(managerMinimizedHeight)
   else
+    managerAttackUI:setWidth(managerNormalWidth)
     managerAttackUI:setHeight(managerNormalHeight)
 
     if managerAttackUI.list then managerAttackUI.list:show() end
@@ -6577,6 +6671,8 @@ if managerAttackUI.minimizeButton then
 end
 
 macro(300, function()
+  managerAtkStoreCurrentSize(false)
+
   if not hudSwitchOn("comboManager") then
     if managerAttackUI:isVisible() then
       managerAttackUI:hide()
@@ -6588,13 +6684,13 @@ macro(300, function()
     managerAttackUI:show()
     managerAtkApplyPos()
     managerAtkSetMinimized(toolsStorage[panelName].managerAttackbotMinimized == true)
-
-    if not toolsStorage[panelName].managerAttackbotMinimized then
-      managerAtkRefresh()
-    end
   end
 
   if not toolsStorage[panelName].managerAttackbotMinimized then
+    if managerAtkNeedsRefresh() then
+      managerAtkRefresh()
+    end
+
     managerAtkUpdateCooldowns()
   end
 end)
@@ -6603,7 +6699,10 @@ macro(1000, function()
   if not managerAttackUI:isVisible() then return end
   if toolsStorage[panelName].managerAttackbotMinimized then return end
 
-  managerAtkRefresh()
+  if managerAtkNeedsRefresh() then
+    managerAtkRefresh()
+  end
+
   managerAtkUpdateCooldowns()
 end)
 end)
@@ -12599,7 +12698,7 @@ local function fullEquipToSlot(itemId, slot)
   return ok
 end
 
-local function setFullTankEnabled(state)
+function setFullTankEnabled(state)
   cfg.enabled = state == true
   lnsFullTankActive = cfg.enabled == true
 
@@ -13488,7 +13587,6 @@ if g_keyboard and g_keyboard.bindKeyDown then
     clearAnimation()
   end)
 end
-
 end)
 
 lnsRunBlock("ICONES", function()
