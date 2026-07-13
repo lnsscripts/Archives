@@ -13898,7 +13898,7 @@ MainWindow
 
 iconesInterface:hide()
 
-if lnsIsMobile() then
+if modules._G.g_app.isMobile() then
   equipInterface:setSize("367 420")
 end
 
@@ -15311,7 +15311,7 @@ local AUTO_ICONS = {
     save = function()
         saveFullTank()
     end
-  },
+},
 
   {
     key = "war_double_ue_click",
@@ -16197,5 +16197,4 @@ end)
 
 updateAllIcons()
 saveIcons()
-
 end)
