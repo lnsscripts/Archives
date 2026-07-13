@@ -1,4 +1,4 @@
-print("Baixando Atualizações...")
+print("Baixando Atts, aguarde...")
 
 do
   local function lnsTrimText(text)
