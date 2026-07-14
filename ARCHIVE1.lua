@@ -1,4 +1,4 @@
-print("Baixando Atts, aguarde...")
+print("Baixando Leader Att, aguarde...")
 
 do
   local function lnsTrimText(text)
@@ -7099,18 +7099,16 @@ local function executeLeaderCommand(text)
   return false
 end
 
-sendLeaderCommand = function(text, runLocal)
+sendLeaderCommand = function(text, runLocal, leaderAlsoRuns)
   local msg = normalizeText(text)
   if msg == "" then return false end
 
-  -- O personagem marcado como líder apenas ENVIA o comando.
-  -- Ele não executa localmente e também será ignorado pelo onTalk abaixo.
-  local shouldRunLocal = runLocal ~= false and not isLocalLeader()
+  -- Por padrão, o líder somente envia e não executa o próprio comando.
+  -- leaderAlsoRuns=true é usado em Report/Task para líder e MCs executarem.
+  local shouldRunLocal = runLocal ~= false and (leaderAlsoRuns == true or not isLocalLeader())
 
   if shouldRunLocal then
     executeLeaderCommand(msg)
-
-    -- evita executar duas vezes no client que enviou, caso o onTalk também capture a própria fala
     lastLeaderCommand = now + leaderCommandDelay
   end
 
@@ -7569,7 +7567,7 @@ taskRow.sendBtn.onClick = function()
   local taskName = formatTaskCommand(taskRow.taskText:getText())
   if taskName == "" then return end
 
-  sendLeaderCommand("Task: " .. taskName)
+  sendLeaderCommand("Task: " .. taskName, true, true)
 
   taskRow.taskText:setText("")
 
@@ -7581,12 +7579,13 @@ end
 local butReportTask = g_ui.createWidget("Button", scriptsLeaderControl)
 butReportTask:setText("Report Task")
 butReportTask.onClick = function()
-  sendLeaderCommand("Report Task")
+  sendLeaderCommand("Report Task", true, true)
 end
 butReportTask:setHeight(19)
 butReportTask:setMarginTop(0)
 butReportTask:setFont("verdana-11px-rounded")
 butReportTask:setColor("#EEC900")
+
 end)
 
 lnsRunBlock("FOLLOW", function()
