@@ -4757,7 +4757,7 @@ end)
 end)
 
 lnsRunBlock("CONDITIONS", function()
-  storage = storage or {}
+storage = storage or {}
 storage.LNSConditionsGlobal = storage.LNSConditionsGlobal or {}
 
 local conditionsStorage = storage.LNSConditionsGlobal
@@ -4788,6 +4788,7 @@ end
 conditionsStorage[panelName].switches = conditionsStorage[panelName].switches or {}
 conditionsStorage[panelName].combos   = conditionsStorage[panelName].combos or {}
 conditionsStorage[panelName].texts    = conditionsStorage[panelName].texts or {}
+conditionsStorage[panelName].scrolls  = conditionsStorage[panelName].scrolls or {}
 
 if storage[panelName] and not conditionsStorage[panelName .. "_migrated"] then
   local old = storage[panelName]
@@ -4859,540 +4860,534 @@ conditionsButton.title.onClick = function(widget)
   saveConditionsChar()
 end
 
+conditionsButton.settings.onClick = function()
+  conditionsInterface:show()
+end
+
 conditionsInterface = setupUI([=[
 MainWindow
   id: mainPanel
-  size: 350 270
+  size: 270 410
   text: Perfect Conditions
   margin-top: -50
+
+  Button
+    id: closeButton
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    height: 24
+    margin-left: -5
+    margin-right: -5
+    margin-bottom: -5
+    text: CLOSE
+    font: cipsoftFont
 
   FlatPanel
     id: infolist1
     anchors.top: parent.top
     anchors.left: parent.left
     anchors.right: parent.right
-    height: 115
-    margin-left: -4
-    margin-right: -4
+    anchors.bottom: closeButton.top
+    margin-left: -5
+    margin-right: -5
+    margin-top: 2
+    margin-bottom: 7
 
-    BotSwitch
-      id: spellHaste
+    FlatPanel
+      id: hastePanel
       anchors.top: parent.top
       anchors.left: parent.left
-      margin-top: 8
-      margin-left: 8
-      image-source: /images/ui/button_rounded
-      size: 35 20
-      font: verdana-11px-rounded
-      $on:
-        text: On
-      $!on:
-        image-color: gray
-        text: Off
-
-    Label
-      id: lblHaste
-      anchors.left: spellHaste.right
-      anchors.verticalCenter: spellHaste.verticalCenter
-      margin-left: 5
-      text: Haste
-      font: verdana-11px-rounded
-      text-auto-resize: true
-
-    ComboBox
-      id: comboHaste
       anchors.right: parent.right
-      anchors.verticalCenter: spellHaste.verticalCenter
-      margin-right: 8
-      width: 150
-      @onSetup: |
-        self:addOption("")
-        self:addOption("Utani Hur")
-        self:addOption("Utani Gran Hur")
-        self:addOption("Utani Tempo Hur")
-        self:addOption("Utamo Tempo San")
+      height: 45
+      margin-left: 6
+      margin-right: 6
+      margin-top: 5
 
-    BotSwitch
-      id: spellBuff
-      anchors.top: spellHaste.bottom
-      anchors.left: spellHaste.left
-      margin-top: 6
-      image-source: /images/ui/button_rounded
-      size: 35 20
-      font: verdana-11px-rounded
-      $on:
-        text: On
-      $!on:
-        image-color: gray
-        text: Off
+      Label
+        id: hasteLabel
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 15
+        margin-left: 5
+        margin-right: 5
+        margin-top: 2
+        text: Haste Spell
+        text-align: center
 
-    Label
-      id: lblBuff
-      anchors.left: spellBuff.right
-      anchors.verticalCenter: spellBuff.verticalCenter
-      margin-left: 5
-      text: Buff
-      font: verdana-11px-rounded
-      text-auto-resize: true
+      BotTextEdit
+        id: spellHaste
+        anchors.top: hasteLabel.bottom
+        anchors.left: parent.left
+        width: 155
+        height: 20
+        margin-left: 5
+        margin-top: 3
+        font: cipsoftFont
+        tooltip: "Digite a magia de haste."
 
-    ComboBox
-      id: comboBuff
-      anchors.right: comboHaste.right
-      anchors.verticalCenter: spellBuff.verticalCenter
-      width: 150
-      @onSetup: |
-        self:addOption("")
-        self:addOption("Utito Tempo")
-        self:addOption("Utamo Tempo")
-        self:addOption("Utito Tempo San")
-        self:addOption("Utito Virtu")
-        self:addOption("Utori Virtu")
+      BotSwitch
+        id: ativadorHaste
+        anchors.top: spellHaste.top
+        anchors.left: spellHaste.right
+        anchors.right: parent.right
+        height: 20
+        margin-left: 5
+        margin-right: 5
+        margin-top: 0
+        text: AUTO HASTE
+        font: cipsoftFont
 
-    BotSwitch
-      id: spellAntilyze
-      anchors.top: spellBuff.bottom
-      anchors.left: spellBuff.left
-      margin-top: 6
-      image-source: /images/ui/button_rounded
-      size: 35 20
-      font: verdana-11px-rounded
-      $on:
-        text: On
-      $!on:
-        image-color: gray
-        text: Off
-
-    Label
-      id: lblAntiLyze
-      anchors.left: spellAntilyze.right
-      anchors.verticalCenter: spellAntilyze.verticalCenter
-      margin-left: 5
-      text: Anti-Lyze
-      font: verdana-11px-rounded
-      text-auto-resize: true
-
-    TextEdit
-      id: comboAntilyze
-      anchors.right: comboBuff.right
-      anchors.verticalCenter: spellAntilyze.verticalCenter
-      width: 150
-      height: 20
-      placeholder: Insert anti-lyze spell
-
-    BotSwitch
-      id: spellUtura
-      anchors.top: spellAntilyze.bottom
-      anchors.left: spellAntilyze.left
-      margin-top: 6
-      image-source: /images/ui/button_rounded
-      size: 35 20
-      font: verdana-11px-rounded
-      $on:
-        text: On
-      $!on:
-        image-color: gray
-        text: Off
-
-    Label
-      id: lblUtura
-      anchors.left: spellUtura.right
-      anchors.verticalCenter: spellUtura.verticalCenter
-      margin-left: 5
-      text: Utura Gran
-      font: verdana-11px-rounded
-      text-auto-resize: true
-
-    TextEdit
-      id: textUturaGran
-      anchors.right: comboAntilyze.right
-      anchors.verticalCenter: spellUtura.verticalCenter
-      width: 150
-      height: 20
-      placeholder: Insert utura spell
-
-  FlatPanel
-    id: infolist2
-    anchors.top: infolist1.bottom
-    anchors.left: parent.left
-    anchors.bottom: parent.bottom
-    anchors.right: parent.right
-    height: 178
-    margin-top: 8
-    margin-bottom: 20
-    margin-left: -4
-    margin-right: -4
-
-    BotSwitch
-      id: spellUtamo
-      anchors.top: parent.top
+    FlatPanel
+      id: paralyzePanel
+      anchors.top: hastePanel.bottom
       anchors.left: parent.left
-      margin-top: 8
-      margin-left: 8
-      image-source: /images/ui/button_rounded
-      size: 35 20
-      font: verdana-11px-rounded
-      $on:
-        text: On
-      $!on:
-        image-color: gray
-        text: Off
+      anchors.right: parent.right
+      height: 45
+      margin-left: 6
+      margin-right: 6
+      margin-top: 5
 
-    Label
-      id: lblUtamo
-      anchors.left: spellUtamo.right
-      anchors.verticalCenter: spellUtamo.verticalCenter
-      margin-left: 5
-      text: Auto Magic Shield
-      font: verdana-11px-rounded
-      text-auto-resize: true
+      Label
+        id: paralyzeLabel
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 15
+        margin-left: 5
+        margin-right: 5
+        margin-top: 2
+        text: Anti-Paralyze
+        text-align: center
 
-    BotSwitch
-      id: spellUtana
-      anchors.top: spellUtamo.bottom
-      anchors.left: spellUtamo.left
-      margin-top: 6
-      image-source: /images/ui/button_rounded
-      size: 35 20
-      font: verdana-11px-rounded
-      $on:
-        text: On
-      $!on:
-        image-color: gray
-        text: Off
+      BotTextEdit
+        id: spellParalyze
+        anchors.top: paralyzeLabel.bottom
+        anchors.left: parent.left
+        width: 155
+        height: 20
+        margin-left: 5
+        margin-top: 3
+        font: cipsoftFont
+        tooltip: "Digite a magia utilizada para remover paralyze."
 
-    Label
-      id: lblUtana
-      anchors.left: spellUtana.right
-      anchors.verticalCenter: spellUtana.verticalCenter
-      margin-left: 5
-      text: Auto Invisible
-      font: verdana-11px-rounded
-      text-auto-resize: true
+      BotSwitch
+        id: ativadorAntiLyze
+        anchors.top: spellParalyze.top
+        anchors.left: spellParalyze.right
+        anchors.right: parent.right
+        height: 20
+        margin-left: 5
+        margin-right: 5
+        margin-top: 0
+        text: ANTI-LYZE
+        font: cipsoftFont
 
-    BotSwitch
-      id: cureStatus
-      anchors.top: spellUtana.bottom
-      anchors.left: spellUtana.left
-      margin-top: 6
-      image-source: /images/ui/button_rounded
-      size: 35 20
-      font: verdana-11px-rounded
-      $on:
-        text: On
-      $!on:
-        image-color: gray
-        text: Off
+    FlatPanel
+      id: buffPanel
+      anchors.top: paralyzePanel.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      height: 45
+      margin-left: 6
+      margin-right: 6
+      margin-top: 5
 
-    Label
-      id: lblCureStatus
-      anchors.left: cureStatus.right
-      anchors.verticalCenter: cureStatus.verticalCenter
-      margin-left: 5
-      text: Cure Status
-      font: verdana-11px-rounded
-      text-auto-resize: true
+      Label
+        id: buffLabel
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 15
+        margin-left: 5
+        margin-right: 5
+        margin-top: 2
+        text: Buff Spell
+        text-align: center
 
-  Button
-    id: closePanel
-    anchors.left: infolist2.left
-    anchors.right: infolist2.right
-    anchors.top: infolist2.bottom
-    margin-top: 5
-    text: Close
+      BotTextEdit
+        id: spellBuff
+        anchors.top: buffLabel.bottom
+        anchors.left: parent.left
+        width: 132
+        height: 20
+        margin-left: 5
+        margin-top: 3
+        font: cipsoftFont
+
+      Button
+        id: infoBuff
+        anchors.top: spellBuff.top
+        anchors.left: spellBuff.right
+        width: 20
+        height: 20
+        margin-left: 3
+        text: ?
+        font: cipsoftFont
+        !tooltip: ("Insira a magia e o cooldown separados por virgula. Exemplo: utito tempo, 10\nPs: Caso nao seja informado o tempo de cooldown, sera considerado como fallback o icone de buff")
+
+      BotSwitch
+        id: ativadorBuff
+        anchors.top: spellBuff.top
+        anchors.left: infoBuff.right
+        anchors.right: parent.right
+        height: 20
+        margin-top: 0
+        margin-left: 5
+        margin-right: 5
+        text: AUTO BUFF
+        font: cipsoftFont
+
+    FlatPanel
+      id: uturaPanel
+      anchors.top: buffPanel.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      height: 45
+      margin-left: 6
+      margin-right: 6
+      margin-top: 5
+
+      Label
+        id: uturaLabel
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 15
+        margin-left: 5
+        margin-right: 5
+        margin-top: 2
+        text: Regeneration Spell
+        text-align: center
+
+      BotTextEdit
+        id: spellUtura
+        anchors.top: uturaLabel.bottom
+        anchors.left: parent.left
+        width: 155
+        height: 20
+        margin-left: 5
+        margin-top: 3
+        font: cipsoftFont
+        tooltip: "Digite a magia de regeneração."
+
+      BotSwitch
+        id: ativadorUtura
+        anchors.top: spellUtura.top
+        anchors.left: spellUtura.right
+        anchors.right: parent.right
+        height: 20
+        margin-top: 0
+        margin-left: 5
+        margin-right: 5
+        text: AUTO UTURA
+        font: cipsoftFont
+
+    FlatPanel
+      id: extraPanel
+      anchors.top: uturaPanel.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.bottom: parent.bottom
+      margin-left: 6
+      margin-right: 6
+      margin-top: 5
+      margin-bottom: 6
+
+      Label
+        id: extraLabel
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 15
+        margin-left: 5
+        margin-right: 5
+        margin-top: 5
+        text: Additional Conditions
+        text-align: center
+
+      BotSwitch
+        id: ativadorCureStatus
+        anchors.top: extraLabel.bottom
+        anchors.left: parent.left
+        width: 114
+        height: 20
+        margin-left: 5
+        margin-top: 3
+        text: CURE STATUS
+        font: cipsoftFont
+        tooltip: "Cura automaticamente efeitos negativos como burn e poison."
+
+      BotSwitch
+        id: ativadorUtamo
+        anchors.top: ativadorCureStatus.top
+        anchors.left: ativadorCureStatus.right
+        anchors.right: parent.right
+        height: 20
+        margin-left: 5
+        margin-right: 5
+        margin-top: 0
+        text: UTAMO VITA
+        font: cipsoftFont
+
+      FlatPanel
+        id: autoSpellSwapPanel
+        anchors.top: ativadorCureStatus.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        margin-left: 5
+        margin-right: 5
+        margin-top: 5
+        margin-bottom: 5
+
+        Label
+          id: swapTitle
+          anchors.top: parent.top
+          anchors.left: parent.left
+          anchors.right: parent.right
+          height: 15
+          margin-left: 5
+          margin-right: 5
+          margin-top: 3
+          text: Auto Spell Swap
+          text-align: center
+
+        HorizontalScrollBar
+          id: swapPercentLeft
+          anchors.top: swapTitle.bottom
+          anchors.left: parent.left
+          width: 108
+          margin-left: 5
+          margin-top: 3
+          minimum: 0
+          maximum: 100
+          step: 1
+          value: 40
+          pixels-scroll: true
+          tooltip: "Porcentagem para ativar a magia configurada no campo esquerdo."
+
+        Label
+          id: swapPercentLeftValue
+          anchors.fill: swapPercentLeft
+          text: 40%
+          text-align: center
+          phantom: true
+
+        HorizontalScrollBar
+          id: swapPercentRight
+          anchors.top: swapPercentLeft.top
+          anchors.left: swapPercentLeft.right
+          anchors.right: parent.right
+          margin-left: 5
+          margin-right: 5
+          minimum: 0
+          maximum: 100
+          step: 1
+          value: 80
+          pixels-scroll: true
+          tooltip: "Porcentagem para ativar a magia configurada no campo direito."
+
+        Label
+          id: swapPercentRightValue
+          anchors.fill: swapPercentRight
+          text: 80%
+          text-align: center
+          phantom: true
+
+        BotTextEdit
+          id: swapSpellLeft
+          anchors.top: swapPercentLeft.bottom
+          anchors.left: parent.left
+          width: 108
+          height: 20
+          margin-left: 5
+          margin-top: 4
+          font: cipsoftFont
+          tooltip: "Digite a primeira magia do swap."
+
+        BotTextEdit
+          id: swapSpellRight
+          anchors.top: swapSpellLeft.top
+          anchors.left: swapSpellLeft.right
+          anchors.right: parent.right
+          height: 20
+          margin-left: 5
+          margin-right: 5
+          font: cipsoftFont
+          tooltip: "Digite a segunda magia do swap."
+
+        BotSwitch
+          id: ativadorSpellSwap
+          anchors.top: swapSpellLeft.bottom
+          anchors.left: parent.left
+          anchors.right: parent.right
+          height: 20
+          margin-left: 5
+          margin-right: 5
+          margin-top: 4
+          text: AUTO SPELL SWAP
+          font: cipsoftFont
 
 ]=], g_ui.getRootWidget())
-
 conditionsInterface:hide()
 
-local function getConditionWidget(id)
-  if not conditionsInterface then return nil end
-  return conditionsInterface:recursiveGetChildById(id)
-end
+local cfg = conditionsStorage[panelName]
+local function W(id) return conditionsInterface:recursiveGetChildById(id) end
+local function save() saveConditionsChar() end
 
-if modules._G.g_app.isMobile() then
-  conditionsInterface:setSize("350 290")
-end
-
-local closeBtn = getConditionWidget("closePanel")
-if closeBtn then
-  closeBtn.onClick = function()
-    conditionsInterface:hide()
+for _, id in ipairs({"spellHaste","spellParalyze","spellBuff","spellUtura","swapSpellLeft","swapSpellRight"}) do
+  local w, db = W(id), cfg.texts
+  db[id] = tostring(db[id] or w:getText()):upper(); w:setText(db[id])
+  w.onTextChange = function(x, v)
+    local s = tostring(v or x:getText()):upper()
+    db[id] = s
+    if x:getText() ~= s then x:setText(s) end
+    save()
   end
 end
 
-conditionsButton.settings.onClick = function()
-  if not conditionsInterface:isVisible() then
-    conditionsInterface:show()
-    conditionsInterface:raise()
-    conditionsInterface:focus()
+for _, id in ipairs({"ativadorHaste","ativadorAntiLyze","ativadorBuff","ativadorUtura","ativadorCureStatus","ativadorUtamo","ativadorSpellSwap"}) do
+  local w, db = W(id), cfg.switches
+  if db[id] == nil then db[id] = w:isOn() end
+  w:setOn(db[id])
+  w.onClick = function(x) local v = not x:isOn(); x:setOn(v); db[id] = v; save() end
+end
+
+for _, v in ipairs({{"swapPercentLeft","swapPercentLeftValue"},{"swapPercentRight","swapPercentRightValue"}}) do
+  local w, label, db, id = W(v[1]), W(v[2]), cfg.scrolls, v[1]
+  if db[id] == nil then db[id] = w:getValue() end
+  w:setValue(db[id]); label:setText(db[id] .. "%")
+  w.onValueChange = function(x, value)
+    db[id] = tonumber(value) or x:getValue()
+    label:setText(db[id] .. "%")
+    save()
   end
 end
 
-local function bindSwitch(id)
-  local w = getConditionWidget(id)
-  if not w then
-    warn("bindSwitch nao encontrou widget: " .. tostring(id))
-    return
-  end
-
-  local saved = conditionsStorage[panelName].switches[id]
-  if saved ~= nil then
-    w:setOn(saved == true)
-  else
-    conditionsStorage[panelName].switches[id] = w:isOn() == true
-    saveConditionsChar()
-  end
-
-  w.onClick = function(widget)
-    local newState = not widget:isOn()
-    widget:setOn(newState)
-    conditionsStorage[panelName].switches[id] = newState
-    saveConditionsChar()
-  end
+conditionsInterface.closeButton.onClick = function()
+  conditionsInterface:hide()
 end
 
-local function bindCombo(id)
-  local combo = getConditionWidget(id)
-  if not combo then
-    warn("bindCombo nao encontrou widget: " .. tostring(id))
-    return
-  end
-
-  if conditionsStorage[panelName].combos[id] ~= nil then
-    combo:setCurrentOption(conditionsStorage[panelName].combos[id])
-  else
-    conditionsStorage[panelName].combos[id] = combo:getCurrentOption()
-    saveConditionsChar()
-  end
-
-  combo.onOptionChange = function(widget, option)
-    conditionsStorage[panelName].combos[id] = option
-    saveConditionsChar()
-  end
+-- MACROS MIGRADAS DO OLD_CONDITIONS
+local buffUntil, uturaUntil, lastMove, lastPos = 0, 0, 0
+local function trim(s) return tostring(s or ""):match("^%s*(.-)%s*$") end
+local function active(id) return conditionsStorage[switchConditions].enabled == true and cfg.switches[id] == true end
+local function txt(id) return trim(cfg.texts[id]) end
+local function buff()
+  local raw, spell, sec = txt("spellBuff")
+  spell, sec = raw:match("^(.-)%s*,%s*(%d+)%s*$")
+  return trim(spell or raw), (tonumber(sec) or 10) * 1000, sec ~= nil
 end
 
-local function bindText(id)
-  local w = getConditionWidget(id)
-  if not w then
-    warn("bindText nao encontrou widget: " .. tostring(id))
-    return
-  end
-
-  if conditionsStorage[panelName].texts[id] ~= nil then
-    w:setText(tostring(conditionsStorage[panelName].texts[id]))
-  else
-    conditionsStorage[panelName].texts[id] = w:getText() or ""
-    saveConditionsChar()
-  end
-
-  w.onTextChange = function(widget, text)
-    conditionsStorage[panelName].texts[id] = tostring(text or "")
-    saveConditionsChar()
-  end
-end
-
-bindSwitch("spellHaste")
-bindCombo("comboHaste")
-
-bindSwitch("spellBuff")
-bindCombo("comboBuff")
-
-bindSwitch("spellAntilyze")
-bindText("comboAntilyze")
-
-bindSwitch("spellUtura")
-bindText("textUturaGran")
-
-bindSwitch("spellUtamo")
-bindSwitch("spellUtana")
-bindSwitch("cureStatus")
-
-local userUturaTimer = 0
-local userBuffTimer = 0
-local utanaCast = 0
-
-local function _trim(s)
-  return (tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", ""))
-end
-
-local function conditionsEnabled()
-  return conditionsStorage[switchConditions] and conditionsStorage[switchConditions].enabled == true
-end
-
-local function getCondCfg()
-  local cfg = conditionsStorage[panelName]
-  if not cfg then return nil end
-  cfg.switches = cfg.switches or {}
-  cfg.combos = cfg.combos or {}
-  cfg.texts = cfg.texts or {}
-  return cfg
-end
-
-onTalk(function(name, level, mode, text, channelId, pos)
-  local player = g_game.getLocalPlayer()
-  if not player then return end
-  if name ~= player:getName() then return end
-
-  text = tostring(text or ""):lower()
-
-  local cfg = getCondCfg()
-  if not cfg then return end
-
-  local buffSpell = _trim(cfg.combos["comboBuff"]):lower()
-  if buffSpell ~= "" and text == buffSpell then
-    userBuffTimer = now + 10000
-  end
-
-  local uturaSpell = _trim(cfg.texts["textUturaGran"]):lower()
-  if uturaSpell ~= "" and text == uturaSpell then
-    userUturaTimer = now + 60500
-  end
+onTalk(function(name, level, mode, text)
+  local p = g_game.getLocalPlayer()
+  if not p or name ~= p:getName() then return end
+  local said, bs, cd, us = trim(text):lower(), buff()
+  us = txt("spellUtura")
+  if bs ~= "" and said == bs:lower() then buffUntil = now + cd end
+  if us ~= "" and said == us:lower() then uturaUntil = now + 60500 end
 end)
 
-local _lastMovePos = nil
-local _lastMoveMs = 0
-
-local function isMovingRecently(ms)
-  ms = ms or 250
+local function moving()
   local p = pos()
   if not p then return false end
-
-  if not _lastMovePos then
-    _lastMovePos = {x = p.x, y = p.y, z = p.z}
-    return false
-  end
-
-  if p.x ~= _lastMovePos.x or p.y ~= _lastMovePos.y or p.z ~= _lastMovePos.z then
-    _lastMovePos = {x = p.x, y = p.y, z = p.z}
-    _lastMoveMs = now
-    return true
-  end
-
-  return _lastMoveMs > 0 and now - _lastMoveMs <= ms
+  if not lastPos then lastPos = {x=p.x,y=p.y,z=p.z}; return false end
+  if p.x ~= lastPos.x or p.y ~= lastPos.y or p.z ~= lastPos.z then lastPos={x=p.x,y=p.y,z=p.z}; lastMove=now end
+  return now - lastMove <= 250
 end
 
--- ANTI-LYZE
 macro(100, function()
-  if not conditionsEnabled() then return end
-
-  local cfg = getCondCfg()
-  if not cfg or not cfg.switches["spellAntilyze"] then return end
-  if not isParalyzed() then return end
-
-  local spell = _trim(cfg.texts["comboAntilyze"])
-  if spell == "" then return end
-
-  say(spell)
+  if active("ativadorAntiLyze") and isParalyzed() then local s=txt("spellParalyze"); if s~="" then say(s) end end
 end)
 
--- HASTE
 macro(200, function()
-  if not conditionsEnabled() then return end
-
-  local cfg = getCondCfg()
-  if not cfg or not cfg.switches["spellHaste"] then return end
-  if hasHaste() then return end
-  if isParalyzed() then return end
-  if isInPz() then return end
-  if not isMovingRecently(250) then return end
-
-  local spell = _trim(cfg.combos["comboHaste"])
-  if spell == "" then return end
-
-  say(spell)
+  if active("ativadorHaste") and not hasHaste() and not isParalyzed() and not isInPz() and moving() then
+    local s=txt("spellHaste"); if s~="" then say(s) end
+  end
 end)
 
--- BUFF / UTITO / UTAMO TEMPO / ETC
 macro(200, function()
-  if not conditionsEnabled() then return end
-
-  local cfg = getCondCfg()
-  if not cfg or not cfg.switches["spellBuff"] then return end
-  if userBuffTimer and userBuffTimer >= now then return end
-  if not g_game.isAttacking() then return end
-
-  local spell = _trim(cfg.combos["comboBuff"])
-  if spell == "" then return end
-
-  say(spell)
-  userBuffTimer = now + 10000
+  if not active("ativadorBuff") or now < buffUntil or not g_game.isAttacking() then return end
+  local s, cd, custom = buff()
+  if s == "" or (not custom and type(hasBuff) == "function" and hasBuff()) then return end
+  say(s); buffUntil = now + cd
 end)
 
--- UTURA GRAN / REGEN
 macro(500, function()
-  if not conditionsEnabled() then return end
-
-  local player = g_game.getLocalPlayer()
-  if not player then return end
-
-  local cfg = getCondCfg()
-  if not cfg or not cfg.switches["spellUtura"] then return end
-  if userUturaTimer and userUturaTimer >= now then return end
-  if player:getMana() < 200 then return end
-
-  local spell = _trim(cfg.texts["textUturaGran"])
-  if spell == "" then spell = "utura gran" end
-
-  say(spell)
-  userUturaTimer = now + 60500
+  local p = g_game.getLocalPlayer()
+  if not active("ativadorUtura") or not p or now < uturaUntil or p:getMana() < 200 then return end
+  local s=txt("spellUtura"); say(s~="" and s or "UTURA GRAN"); uturaUntil=now+60500
 end)
 
--- CURE STATUS
+local cures={{"isPoisioned","exana pox"},{"isBurning","exana flam"},{"isEnergized","exana vis"},{"isCursed","exana mort"},{"isBleeding","exana kor"}}
 macro(200, function()
-  if not conditionsEnabled() then return end
-
-  local cfg = getCondCfg()
-  if not cfg or not cfg.switches["cureStatus"] then return end
-  if g_game.isAttacking() then return end
-
-  if isPoisioned() then
-    say("exana pox")
-    return
-  end
-
-  if isBurning() then
-    say("exana flam")
-    return
-  end
-
-  if isEnergized() then
-    say("exana vis")
-    return
-  end
-
-  if isCursed() then
-    say("exana mort")
-    return
-  end
-
-  if isBleeding() then
-    say("exana kor")
-    return
-  end
+  if not active("ativadorCureStatus") or g_game.isAttacking() then return end
+  for _,v in ipairs(cures) do local f=_G[v[1]]; if f and f() then say(v[2]); return end end
 end)
 
--- AUTO MAGIC SHIELD
 macro(200, function()
-  if not conditionsEnabled() then return end
-
-  local cfg = getCondCfg()
-  if not cfg or not cfg.switches["spellUtamo"] then return end
-  if hasManaShield() then return end
-
-  say("utamo vita")
+  if active("ativadorUtamo") and not hasManaShield() then say("utamo vita") end
 end)
 
--- AUTO INVISIBLE
-macro(200, function()
-  if not conditionsEnabled() then return end
+-- AUTO SPELL SWAP: HP baixo usa esquerda; HP alto usa direita.
+-- Confirma o cast pelo onTalk e, quando disponível, pelo efeito real da spell.
+local swap={side=nil,pending=nil,wait=0,retry=0}
+local function swapCfg()
+  local a,b=tonumber(cfg.scrolls.swapPercentLeft) or 40,tonumber(cfg.scrolls.swapPercentRight) or 80
+  if a>b then a,b=b,a end
+  return a,b,txt("swapSpellLeft"),txt("swapSpellRight")
+end
+local function effectSig(s)
+  s=trim(s):lower()
+  if s:find("utamo vita",1,true) then return "mana",true end
+  if s:find("exana vita",1,true) then return "mana",false end
+  if s:match("^utito%s") or s:match("^utori%s") then return "party",true end
+  if s:match("^utani%s") then return "haste",true end
+  if s:find("utana vid",1,true) then return "invisible",true end
+end
+local function effectValue(k)
+  local f=k=="mana" and hasManaShield or k=="party" and hasPartyBuff or k=="haste" and hasHaste or
+          k=="invisible" and (hasInvisible or isInvisible)
+  if type(f)~="function" then return nil end
+  local ok,v=pcall(f); if not ok then return nil end; return v==true
+end
+local function confirmed(side,l,r)
+  local s,o=side=="left" and l or r,side=="left" and r or l
+  local k,v=effectSig(s); if not k then return nil end
+  local ok,ov=effectValue(k),effectSig(o)
+  if ok==nil or (ov==k and select(2,effectSig(o))==v) then return nil end
+  return ok==v
+end
 
-  local cfg = getCondCfg()
-  if not cfg or not cfg.switches["spellUtana"] then return end
-  if mana() < 441 then return end
-  if utanaCast > 0 and now - utanaCast < 120000 then return end
+onTalk(function(name,level,mode,text)
+  local p=g_game.getLocalPlayer(); if not p or name~=p:getName() then return end
+  local _,_,l,r=swapCfg(); local s=trim(text):lower()
+  if s==l:lower() then swap.side="left"; swap.pending=nil
+  elseif s==r:lower() then swap.side="right"; swap.pending=nil end
+end)
 
-  say("utana vid")
-  utanaCast = now
+macro(100,function()
+  if not active("ativadorSpellSwap") then swap.side=nil; swap.pending=nil; return end
+  if isInPz() then return end
+  local p=g_game.getLocalPlayer(); if not p then return end
+  local low,high,l,r=swapCfg(); local hp=type(hppercent)=="function" and hppercent() or
+    math.floor(p:getHealth()*100/math.max(1,p:getMaxHealth()))
+  local side
+  if swap.side=="left" then
+    side=hp>=high and "right" or "left"
+  elseif swap.side=="right" then
+    side=hp<=low and "left" or "right"
+  else
+    side=hp<=low and "left" or "right"
+  end
+  local spell=side=="left" and l or r; if spell=="" then return end
+  local ok=confirmed(side,l,r)
+  if ok then swap.side=side; swap.pending=nil; return end
+  if swap.side==side and ok~=false then return end
+  if swap.pending==side and now<swap.wait or now<swap.retry then return end
+  say(spell); swap.pending=side; swap.wait=now+1500; swap.retry=now+500
 end)
 end)
 
