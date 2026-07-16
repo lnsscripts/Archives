@@ -13599,6 +13599,7 @@ setDefaultTab("Main")
 storage = storage or {}
 storage.LNSIconsGlobal = storage.LNSIconsGlobal or storage.lnsIconsPanel or {}
 local iconsStorage = storage.LNSIconsGlobal
+iconsStorage.cond_utana = nil
 
 local function lnsIconStore(name)
   storage[name] = storage[name] or {}
@@ -14976,9 +14977,9 @@ local AUTO_ICONS = {
     itemId = 3079,
     text = "HASTE",
     show = false,
-    read = function() return readConditionSwitch("spellHaste") end,
-    write = function(state) writeConditionSwitch("spellHaste", state) end,
-    getButton = function() return getConditionsSwitch("spellHaste") end,
+    read = function() return readConditionSwitch("ativadorHaste") end,
+    write = function(state) writeConditionSwitch("ativadorHaste", state) end,
+    getButton = function() return getConditionsSwitch("ativadorHaste") end,
     save = saveConditionsIcon
   },
 
@@ -14987,9 +14988,9 @@ local AUTO_ICONS = {
     itemId = 3411,
     text = "BUFF",
     show = false,
-    read = function() return readConditionSwitch("spellBuff") end,
-    write = function(state) writeConditionSwitch("spellBuff", state) end,
-    getButton = function() return getConditionsSwitch("spellBuff") end,
+    read = function() return readConditionSwitch("ativadorBuff") end,
+    write = function(state) writeConditionSwitch("ativadorBuff", state) end,
+    getButton = function() return getConditionsSwitch("ativadorBuff") end,
     save = saveConditionsIcon
   },
 
@@ -14998,9 +14999,9 @@ local AUTO_ICONS = {
     itemId = 3160,
     text = "ANTI LYZE",
     show = false,
-    read = function() return readConditionSwitch("spellAntilyze") end,
-    write = function(state) writeConditionSwitch("spellAntilyze", state) end,
-    getButton = function() return getConditionsSwitch("spellAntilyze") end,
+    read = function() return readConditionSwitch("ativadorAntiLyze") end,
+    write = function(state) writeConditionSwitch("ativadorAntiLyze", state) end,
+    getButton = function() return getConditionsSwitch("ativadorAntiLyze") end,
     save = saveConditionsIcon
   },
 
@@ -15009,9 +15010,9 @@ local AUTO_ICONS = {
     itemId = 3160,
     text = "UTURA",
     show = false,
-    read = function() return readConditionSwitch("spellUtura") end,
-    write = function(state) writeConditionSwitch("spellUtura", state) end,
-    getButton = function() return getConditionsSwitch("spellUtura") end,
+    read = function() return readConditionSwitch("ativadorUtura") end,
+    write = function(state) writeConditionSwitch("ativadorUtura", state) end,
+    getButton = function() return getConditionsSwitch("ativadorUtura") end,
     save = saveConditionsIcon
   },
 
@@ -15020,20 +15021,9 @@ local AUTO_ICONS = {
     itemId = 3051,
     text = "UTAMO",
     show = false,
-    read = function() return readConditionSwitch("spellUtamo") end,
-    write = function(state) writeConditionSwitch("spellUtamo", state) end,
-    getButton = function() return getConditionsSwitch("spellUtamo") end,
-    save = saveConditionsIcon
-  },
-
-  {
-    key = "cond_utana",
-    itemId = 3086,
-    text = "UTANA",
-    show = false,
-    read = function() return readConditionSwitch("spellUtana") end,
-    write = function(state) writeConditionSwitch("spellUtana", state) end,
-    getButton = function() return getConditionsSwitch("spellUtana") end,
+    read = function() return readConditionSwitch("ativadorUtamo") end,
+    write = function(state) writeConditionSwitch("ativadorUtamo", state) end,
+    getButton = function() return getConditionsSwitch("ativadorUtamo") end,
     save = saveConditionsIcon
   },
 
@@ -15042,9 +15032,20 @@ local AUTO_ICONS = {
     itemId = 3153,
     text = "CURE",
     show = false,
-    read = function() return readConditionSwitch("cureStatus") end,
-    write = function(state) writeConditionSwitch("cureStatus", state) end,
-    getButton = function() return getConditionsSwitch("cureStatus") end,
+    read = function() return readConditionSwitch("ativadorCureStatus") end,
+    write = function(state) writeConditionSwitch("ativadorCureStatus", state) end,
+    getButton = function() return getConditionsSwitch("ativadorCureStatus") end,
+    save = saveConditionsIcon
+  },
+
+  {
+    key = "cond_spell_swap",
+    itemId = 3160,
+    text = "SPELL SWAP",
+    show = false,
+    read = function() return readConditionSwitch("ativadorSpellSwap") end,
+    write = function(state) writeConditionSwitch("ativadorSpellSwap", state) end,
+    getButton = function() return getConditionsSwitch("ativadorSpellSwap") end,
     save = saveConditionsIcon
   },
 
