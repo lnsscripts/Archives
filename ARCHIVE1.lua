@@ -3901,41 +3901,87 @@ PotionRow < Panel
     anchors.left: parent.left
     anchors.top: parent.top
     margin-left: 4
-    margin-top: 25
-    size: 37 37
+    margin-top: 2
+    size: 35 35
 
-  HorizontalScrollBar
-    id: Scroll
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: parent.top
-    margin-left: 4
-    margin-right: 4
-    margin-top: 3
-    minimum: 0
-    maximum: 100
-    step: 1
-    value: 80
+  Label
+    id: idText
+    anchors.left: image.right
+    anchors.right: activeBox.left
+    anchors.verticalCenter: image.verticalCenter
+    margin-left: 7
+    margin-right: 7
+    height: 20
+    color: white
+    font: verdana-11px-rounded
+    text-align: center
+    text: ID: 0000
 
   BotSwitch
     id: activeBox
     anchors.right: parent.right
     anchors.verticalCenter: image.verticalCenter
+    margin-top: 0
     margin-right: 5
-    margin-top: 4
     size: 35 25
     text: OFF
     font: verdana-9px
 
+  HorizontalScrollBar
+    id: Scroll
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: image.bottom
+    margin-left: 5
+    margin-right: 5
+    margin-top: 3
+    height: 13
+    minimum: 0
+    maximum: 100
+    step: 1
+    value: 80
+    @onValueChange: self:getParent():getChildById('hpText'):setText('HP: ' .. self:getValue() .. '%')
+
   Label
     id: hpText
-    anchors.left: image.right
-    anchors.verticalCenter: image.verticalCenter
-    margin-left: 10
-    margin-top: -1
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.verticalCenter: Scroll.verticalCenter
+    margin-left: 5
+    margin-right: 5
+    height: 13
     color: white
-    font: verdana-11px-rounded
-    text: HP <= 80%
+    text-align: center
+    phantom: true
+    text: HP: 80%
+
+  HorizontalScrollBar
+    id: delayScroll
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: Scroll.bottom
+    margin-left: 5
+    margin-right: 5
+    margin-top: 3
+    height: 13
+    minimum: 0
+    maximum: 5000
+    step: 50
+    value: 500
+    @onValueChange: self:getParent():getChildById('delayText'):setText('Delay: ' .. self:getValue() .. ' ms')
+
+  Label
+    id: delayText
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.verticalCenter: delayScroll.verticalCenter
+    margin-left: 5
+    margin-right: 5
+    height: 13
+    color: white
+    text-align: center
+    phantom: true
+    text: Delay: 500 ms
 ]])
 
 local selectedRows = {
@@ -4187,9 +4233,14 @@ end
 local function makePotionEntry(data, defaultItem)
   data = data or {}
 
+  local delay = tonumber(data.delay) or 250
+  if delay < 0 then delay = 0 end
+  if delay > 5000 then delay = 5000 end
+
   return {
     itemId = tonumber(data.itemId) or defaultItem,
     hp = tonumber(data.hp) or 80,
+    delay = delay,
     enabled = data.enabled == true
   }
 end
@@ -4258,19 +4309,26 @@ end
 local function bindPotionRow(row, entry, kind)
   row._entry = entry
 
-  row.Scroll:setValue(entry.hp or 80)
+  local itemId = tonumber(entry.itemId) or 0
+  local hpValue = tonumber(entry.hp) or 80
+  local delayValue = tonumber(entry.delay) or 250
+
+  row.Scroll:setValue(hpValue)
+  row.delayScroll:setValue(delayValue)
+  row.idText:setText("ID: " .. tostring(itemId))
+  row.delayText:setText("Delay: " .. tostring(delayValue) .. " ms")
 
   if kind == "mp" then
-    row.hpText:setText("MP <= " .. tostring(entry.hp or 80) .. "%")
+    row.hpText:setText("MP <= " .. tostring(hpValue) .. "%")
   else
-    row.hpText:setText("HP <= " .. tostring(entry.hp or 80) .. "%")
+    row.hpText:setText("HP <= " .. tostring(hpValue) .. "%")
   end
 
   row.activeBox:setOn(entry.enabled == true)
   row.activeBox:setText(entry.enabled and "ON" or "OFF")
 
   if row.image and row.image.setItemId then
-    row.image:setItemId(entry.itemId or 0)
+    row.image:setItemId(itemId)
   end
 
   row.onClick = function(widget)
@@ -4289,11 +4347,26 @@ local function bindPotionRow(row, entry, kind)
     saveHealingGlobal()
   end
 
+  row.delayScroll.onValueChange = function(widget, value)
+    entry.delay = tonumber(value) or 250
+    row.delayText:setText("Delay: " .. tostring(entry.delay) .. " ms")
+    saveHealingGlobal()
+  end
+
   row.activeBox.onClick = function(widget)
     local state = not widget:isOn()
     widget:setOn(state)
     widget:setText(state and "ON" or "OFF")
     entry.enabled = state
+    saveHealingGlobal()
+  end
+
+  local function updatePotionItemId(id)
+    id = tonumber(id) or 0
+    if id <= 0 then return end
+
+    entry.itemId = id
+    row.idText:setText("ID: " .. tostring(id))
     saveHealingGlobal()
   end
 
@@ -4307,19 +4380,11 @@ local function bindPotionRow(row, entry, kind)
         id = tonumber(widget:getItem():getId()) or 0
       end
 
-      if id > 0 then
-        entry.itemId = id
-        saveHealingGlobal()
-      end
+      updatePotionItemId(id)
     end
 
-    row.image.onItemIdChange = function(widget, itemId)
-      itemId = tonumber(itemId) or 0
-
-      if itemId > 0 then
-        entry.itemId = itemId
-        saveHealingGlobal()
-      end
+    row.image.onItemIdChange = function(widget, newItemId)
+      updatePotionItemId(newItemId)
     end
   end
 end
@@ -4496,11 +4561,14 @@ loadRows()
 
 local healProfile = PROFILE
 local healSpellCooldown = 900
-local healPotionCooldown = 250
 local lastHealSpellCast = 0
-local lastHealPotionUse = 0
-local lastHealMpPotionUse = 0
 local spellLock = false
+
+-- O cooldown das potions começa somente quando o personagem fala "Aaaah...".
+-- Enquanto aguardamos essa confirmação, uma trava curta impede spam de useWith.
+local POTION_CONFIRM_TIMEOUT = 150
+local potionCooldownUntil = 0
+local pendingPotion = nil
 
 local function nowMs()
   if g_clock and g_clock.millis then
@@ -4563,12 +4631,17 @@ local function normalizePotionRow(row, mode)
 
   local itemId = tonumber(row.itemId) or 0
   local threshold = tonumber(row.hp) or tonumber(row.mp) or 0
+  local delay = tonumber(row.delay) or 250
 
   if itemId <= 0 then return nil end
+
+  if delay < 0 then delay = 0 end
+  if delay > 5000 then delay = 5000 end
 
   return {
     itemId = itemId,
     threshold = threshold,
+    delay = delay,
     mode = mode
   }
 end
@@ -4643,12 +4716,67 @@ local function getBestMpPotion()
   return best
 end
 
+local function isPotionConfirmationMessage(text)
+  local msg = tostring(text or ""):lower()
+
+  -- Aceita variações como "Aaaah...", inclusive com letras acentuadas.
+  msg = msg
+    :gsub("á", "a")
+    :gsub("à", "a")
+    :gsub("â", "a")
+    :gsub("ã", "a")
+    :gsub("ä", "a")
+    :gsub("[^a-z]", "")
+
+  return msg:match("^aaa+h$") ~= nil
+end
+
+local function potionIsLocked()
+  if now < potionCooldownUntil then
+    return true
+  end
+
+  if pendingPotion then
+    if now < pendingPotion.expiresAt then
+      return true
+    end
+
+    -- Nenhuma confirmação chegou dentro do limite; libera uma nova tentativa.
+    pendingPotion = nil
+  end
+
+  return false
+end
+
+local function tryUsePotion(potion, localPlayer)
+  if not potion or not localPlayer or potionIsLocked() then return false end
+
+  pendingPotion = {
+    itemId = potion.itemId,
+    mode = potion.mode,
+    delay = potion.delay,
+    expiresAt = now + POTION_CONFIRM_TIMEOUT
+  }
+
+  useWith(potion.itemId, localPlayer)
+  return true
+end
+
 onTalk(function(name, level, mode, text, channelId, pos)
   local localPlayer = g_game.getLocalPlayer()
   if not localPlayer or name ~= localPlayer:getName() then return end
 
+  local msg = tostring(text or "")
+
+  -- A contagem escolhida na row começa exatamente na confirmação "Aaaah...".
+  if pendingPotion and isPotionConfirmationMessage(msg) then
+    potionCooldownUntil = now + pendingPotion.delay
+    pendingPotion = nil
+    return
+  end
+
   local hdb = getHealDB()
-  local msg = tostring(text or ""):lower()
+  local lowerMsg = msg:lower()
   local count = getHealCount(hdb, "spells")
 
   for i = 1, count do
@@ -4656,7 +4784,7 @@ onTalk(function(name, level, mode, text, channelId, pos)
     if row then
       local words = row.spell:lower()
 
-      if words ~= "" and msg:find(words, 1, true) then
+      if words ~= "" and lowerMsg:find(words, 1, true) then
         spellLock = true
         lastHealSpellCast = nowMs()
 
@@ -4693,35 +4821,23 @@ end)
 macro(100, function()
   if not healingStorage.healingButton or healingStorage.healingButton.enabled ~= true then return end
   if pauseForMw and pauseForMw > now then return end
-
-  local t = nowMs()
-  if t - lastHealPotionUse < healPotionCooldown then return end
+  if potionIsLocked() then return end
 
   local best = getBestHpPotion()
   if not best then return end
 
-  local localPlayer = g_game.getLocalPlayer()
-  if not localPlayer then return end
-
-  lastHealPotionUse = t
-  useWith(best.itemId, localPlayer)
+  tryUsePotion(best, g_game.getLocalPlayer())
 end)
 
 macro(100, function()
   if not healingStorage.healingButton or healingStorage.healingButton.enabled ~= true then return end
   if pauseForMw and pauseForMw > now then return end
-
-  local t = nowMs()
-  if t - lastHealMpPotionUse < healPotionCooldown then return end
+  if potionIsLocked() then return end
 
   local best = getBestMpPotion()
   if not best then return end
 
-  local localPlayer = g_game.getLocalPlayer()
-  if not localPlayer then return end
-
-  lastHealMpPotionUse = t
-  useWith(best.itemId, localPlayer)
+  tryUsePotion(best, g_game.getLocalPlayer())
 end)
 
 saveHealingGlobal()
