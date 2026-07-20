@@ -7675,7 +7675,7 @@ saveScrollImbue()
 -- =========================================================
 
 local BLANK_SCROLL_ID = 51442
-local SHRINES = {25060, 25061, 25182, 25183}
+local SHRINES = {25060, 25061, 25175, 25182, 25183}
 
 -- IDs finais dos scrolls ja imbuídos, usados para contar quanto falta fazer.
 local SCROLL_RESULT_IDS = {
