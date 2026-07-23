@@ -17222,9 +17222,12 @@ local function startNpcSequence(words,done)
   npcBusy=true; npcSequence(words,done); return true
 end
 local REPORT_CONFIRMATIONS={
-  "your efforts have not gone unnoticed. the task is complete, and your reward has been granted",
-  "you have my thanks, adventurer, your deeds strengthen these lands",
-  "should you seek another hunt, simply speak task when you are ready"
+  "task is complete",
+  "reward has been granted",
+  "you have my thanks",
+  "deeds strengthen these lands",
+  "seek another hunt",
+  "speak task when you are ready"
 }
 local REPORT_CONFIRM_TIMEOUT=20000
 
@@ -17238,25 +17241,14 @@ end
 
 local function handleRagnarReportConfirmation(name,text)
   if name and norm(name)~="ragnar" then return false end
-  if not pendingReportKey or not isRagnarReportConfirmation(text) then return false end
+  if not isRagnarReportConfirmation(text) then return false end
 
-  local key=pendingReportKey
-  if nowMs()-pendingReportStarted>REPORT_CONFIRM_TIMEOUT then
-    pendingReportKey,pendingReportStarted=nil,0
-    return false
-  end
+  local key=cfg.current
+  if not key or not TASKS[key] then return false end
 
-  if cfg.current~=key then
-    pendingReportKey,pendingReportStarted=nil,0
-    return false
-  end
-
-  local complete=ragnarTaskComplete(key)
-  if not complete then
-    pendingReportKey,pendingReportStarted=nil,0
-    return false
-  end
-
+  -- A mensagem do NPC é a confirmação final da entrega.
+  -- Não depende do timer, do pendingReportKey ou do contador local.
+  pendingReportKey,pendingReportStarted=nil,0
   cfg.completed[key]=true
   ragnarClearTask()
   atualizar()
