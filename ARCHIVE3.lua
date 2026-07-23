@@ -1,3 +1,5 @@
+print("Correcao Ragnar Mobile = OK")
+
 do
   local function lnsTrimText(text)
     return tostring(text or ""):lower():gsub("^%s+", ""):gsub("%s+$", ""):gsub("%s+", " ")
