@@ -1,5 +1,3 @@
-print("Correcao Ragnar Mobile = OK")
-
 do
   local function lnsTrimText(text)
     return tostring(text or ""):lower():gsub("^%s+", ""):gsub("%s+$", ""):gsub("%s+", " ")
@@ -16301,6 +16299,8 @@ saveIcons()
 end)
 
 lnsRunBlock("Task_Ragnar", function()
+print("Correcao Ragnar_REPORT = OK")
+
 local TASKS = {
   goblins = { label="Goblins", required=100, iconId=61, creatures={ "Goblin", "Goblin Assassin", "Goblin Leader", "Goblin Scavenger" } },
   trolls = { label="Trolls", required=100, iconId=15, creatures={ "Troll", "Swamp Troll", "Frost Troll", "Island Troll" } },
