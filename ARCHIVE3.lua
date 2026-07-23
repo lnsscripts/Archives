@@ -16299,7 +16299,7 @@ saveIcons()
 end)
 
 lnsRunBlock("Task_Ragnar", function()
-print("Correcao Ragnar_REPORT2 = OK")
+print("Correcao Ragnar_REPORT3 = OK")
 
 local TASKS = {
   goblins = { label="Goblins", required=100, iconId=61, creatures={ "Goblin", "Goblin Assassin", "Goblin Leader", "Goblin Scavenger" } },
@@ -16861,10 +16861,12 @@ setTrackerMinimized(cfg.trackerMinimized)
 
 local KS={seen={},counted={},death={},loot={},pending={},lastLoot={text="",source="",time=0},lastHit={text="",source="",time=0}}
 local CANCEL_MSG,lastCancel="your task has been canceled",0
+local pendingReportKey,pendingReportStarted=nil,0
 local function taskCancelada(text) return norm(text):find(CANCEL_MSG,1,true)~=nil end
 function ragnarClearTask()
   local key=cfg.current
   if key then cfg.progress[key]=nil end
+  pendingReportKey,pendingReportStarted=nil,0
   cfg.current,cfg.kills,cfg.required=nil,0,0
   KS.seen,KS.counted,KS.death,KS.loot,KS.pending={},{},{},{},{}
   KS.lastLoot,KS.lastHit={text="",source="",time=0},{text="",source="",time=0}
@@ -17070,19 +17072,6 @@ macro(1000,function()
   if rb.enabled then if not taskInterface:isVisible() then refreshTracker() end elseif taskInterface:isVisible() then taskInterface:hide() end
 end)
 
-onTalk(function(name,level,mode,text,channelId)
-  if name and norm(name)=="ragnar" and handleTaskCancel(text) then return end
-  if not rb.enabled then return end
-  if channelId==11 then handleLoot(text,"talk"); handleHit(text,"talk") end
-  if name and norm(name)=="ragnar" then local key=parseHunt(text); if key then setTrackedTask(key) end end
-end)
-onTextMessage(function(mode,text)
-  if handleTaskCancel(text) then return end
-  if not rb.enabled then return end
-  local key=parseHunt(text); if key then setTrackedTask(key) end
-  handleHit(text,"text"); handleLoot(text,"text")
-end)
-
 local function caveDoNivel(n) return "LNS_Task"..n end
 local function caveRagnar(v) return type(v)=="string" and v:match("^LNS_Task[1-7]$")~=nil end
 local function setRagnar(on)
@@ -17202,9 +17191,23 @@ function ragnarActiveTask()
   return key and TASKS[key] and TASKS[key].level==cfg.level and cfg.completed[key]~=true and key or nil
 end
 function ragnarHasTask() return ragnarActiveTask()~=nil end
+local function ragnarTaskComplete(key)
+  local task=key and TASKS[key]
+  if not task then return false,0,0 end
+  local progress=cfg.progress[key]
+  local kills=tonumber(progress and progress.kills) or tonumber(cfg.kills) or 0
+  local required=ragnarRequired(key)
+  return required>0 and kills>=required,kills,required
+end
 function ragnarGotoTask()
   local active=ragnarActiveTask()
-  local label=active or (#ragnarAvailableTasks()>0 and "pegar_task" or "Trainer")
+  local label="pegar_task"
+
+  if active then
+    local complete=ragnarTaskComplete(active)
+    label=complete and "reportTask" or active
+  end
+
   CaveBot.gotoLabel(label)
   return label
 end
@@ -17214,24 +17217,50 @@ local function npcSequence(words,done,i)
   i=i or 1
   if not words[i] then npcBusy=false; if done then done() end; return end
   NPC.say(words[i])
-  schedule(500,function() npcSequence(words,done,i+1) end)
+  schedule(1000,function() npcSequence(words,done,i+1) end)
 end
 local function startNpcSequence(words,done)
   if npcBusy then return false end
   npcBusy=true; npcSequence(words,done); return true
 end
-local function ragnarTaskComplete(key)
-  local task=key and TASKS[key]
-  if not task then return false,0,0 end
-  local progress=cfg.progress[key]
-  local kills=tonumber(progress and progress.kills) or tonumber(cfg.kills) or 0
-  local required=ragnarRequired(key)
-  return required>0 and kills>=required,kills,required
+local REPORT_CONFIRMATIONS={
+  "task is complete",
+  "reward has been granted",
+  "you have my thanks",
+  "deeds strengthen these lands",
+  "seek another hunt",
+  "speak task when you are ready"
+}
+local REPORT_CONFIRM_TIMEOUT=20000
+
+local function isRagnarReportConfirmation(text)
+  local msg=norm(text)
+  for _,fragment in ipairs(REPORT_CONFIRMATIONS) do
+    if msg:find(fragment,1,true) then return true end
+  end
+  return false
+end
+
+local function handleRagnarReportConfirmation(name,text)
+  if name and norm(name)~="ragnar" then return false end
+  if not isRagnarReportConfirmation(text) then return false end
+
+  local key=cfg.current
+  if not key or not TASKS[key] then return false end
+
+  -- A mensagem do NPC é a confirmação final da entrega.
+  -- Não depende do timer, do pendingReportKey ou do contador local.
+  pendingReportKey,pendingReportStarted=nil,0
+  cfg.completed[key]=true
+  ragnarClearTask()
+  atualizar()
+  print("Task Ragnar: task reportada e confirmada pelo NPC.")
+  return true
 end
 
 function ragnarReportTask()
   local key=ragnarActiveTask()
-  if not key then return false end
+  if not key or pendingReportKey then return false end
 
   local complete,kills,required=ragnarTaskComplete(key)
   if not complete then
@@ -17239,17 +17268,38 @@ function ragnarReportTask()
     return false,kills,required
   end
 
-  return startNpcSequence({"hi","report","yes"},function()
-    if cfg.current~=key then return end
+  pendingReportKey,pendingReportStarted=key,nowMs()
+  if not startNpcSequence({"hi","task", "report","yes"}) then
+    pendingReportKey,pendingReportStarted=nil,0
+    return false
+  end
 
-    local stillComplete=ragnarTaskComplete(key)
-    if not stillComplete then return end
-
-    cfg.completed[key]=true
-    ragnarClearTask()
-    atualizar()
+  schedule(REPORT_CONFIRM_TIMEOUT,function()
+    if pendingReportKey==key and nowMs()-pendingReportStarted>=REPORT_CONFIRM_TIMEOUT then
+      pendingReportKey,pendingReportStarted=nil,0
+      print("Task Ragnar: nenhuma confirmação de conclusão foi recebida; a task foi mantida ativa.")
+    end
   end)
+
+  return true
 end
+
+onTalk(function(name,level,mode,text,channelId)
+  if name and norm(name)=="ragnar" then
+    if handleTaskCancel(text) then return end
+    if handleRagnarReportConfirmation(name,text) then return end
+  end
+  if not rb.enabled then return end
+  if channelId==11 then handleLoot(text,"talk"); handleHit(text,"talk") end
+  if name and norm(name)=="ragnar" then local key=parseHunt(text); if key then setTrackedTask(key) end end
+end)
+onTextMessage(function(mode,text)
+  if handleTaskCancel(text) then return end
+  if handleRagnarReportConfirmation(nil,text) then return end
+  if not rb.enabled then return end
+  local key=parseHunt(text); if key then setTrackedTask(key) end
+  handleHit(text,"text"); handleLoot(text,"text")
+end)
 function ragnarRandomTask()
   if npcBusy or ragnarActiveTask() then return false end
   local list=ragnarAvailableTasks()
@@ -17300,4 +17350,5 @@ function checkSupplies(labelSemSupply,labelComSupply)
 
   return true
 end
+
 end)
