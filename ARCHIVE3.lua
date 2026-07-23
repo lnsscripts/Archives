@@ -16297,3 +16297,1063 @@ end)
 updateAllIcons()
 saveIcons()
 end)
+
+lnsRunBlock("Task_Ragnar", function()
+local TASKS = {
+  goblins = { label="Goblins", required=100, iconId=61, creatures={ "Goblin", "Goblin Assassin", "Goblin Leader", "Goblin Scavenger" } },
+  trolls = { label="Trolls", required=100, iconId=15, creatures={ "Troll", "Swamp Troll", "Frost Troll", "Island Troll" } },
+  orcs = { label="Orcs", required=250, iconId=5, creatures={ "Orc", "Orc Spearman", "Orc Warrior", "Orc Shaman", "Orc Rider", "Orc Berserker", "Orc Leader", "Orc Warlord" } },
+  rotworms = { label="Rotworms", required=200, iconId=26, creatures={ "Rotworm", "Carrion Worm" } },
+  minotaurs = { label="Minotaurs", required=300, iconId=25, creatures={ "Minotaur", "Minotaur Archer", "Minotaur Guard", "Minotaur Mage" } },
+  dwarfs = { label="Dwarfs", required=300, iconId=69, creatures={ "Dwarf", "Dwarf Soldier", "Dwarf Guard", "Dwarf Geomancer" } },
+  dworcs = { label="Dworcs", required=300, iconId=216, creatures={ "Dworc Venomsniper", "Dworc Voodoomaster", "Dworc Fleshhunter" } },
+  elves = { label="Elves", required=400, iconId=62, creatures={ "Elf", "Elf Scout", "Elf Arcanist", "Firestarter" } },
+  dark_cathedral = { label="Dark Cathedral", required=500, iconId=372, creatures={ "Dark Apprentice", "Dark Magician", "Dark Monk", "Assassin", "Smuggler", "Bandit", "Wild Warrior", "Witch", "Ghost", "Hunter", "Stone Golem", "Demon Skeleton" } },
+  tombs = { label="Tombs", required=800, iconId=85, creatures={ "Ghost", "Mummy", "Ghoul", "Demon Skeleton", "Skeleton", "Crypt Shambler" } },
+  scarabs = { label="Scarabs", required=600, iconId=83, creatures={ "Scarab" } },
+  cyclops = { label="Cyclops", required=500, iconId=22, creatures={ "Cyclops", "Cyclops Smith", "Cyclops Drone" } },
+  mutateds = { label="Mutateds", required=600, iconId=521, creatures={ "Mutated Human", "Mutated Bat", "Mutated Rat", "Mutated Tiger" } },
+  coryms = { label="Coryms", required=400, iconId=916, creatures={ "Corym Charlatan", "Corym Skirmisher", "Corym Vanguard" } },
+  banuta_surface = { label="Banuta Surface", required=600, iconId=116, creatures={ "Kongra", "Sibang", "Merlkin" } },
+  pirates = { label="Pirates", required=600, iconId=247, creatures={ "Pirate Marauder", "Pirate Cutthroat", "Pirate Corsair", "Pirate Buccaneer" } },
+  barbarians = { label="Barbarians", required=600, iconId=323, creatures={ "Barbarian Bloodwalker", "Barbarian Brutetamer", "Barbarian Headsplitter", "Barbarian Skullhunter" } },
+  djinns = { label="Djinns", required=600, iconId=104, creatures={ "Marid", "Efreet", "Green Djinn", "Blue Djinn" } },
+  stonerefiners = { label="Stonerefiners", required=500, iconId=1525, creatures={ "Stonerefiner" } },
+  dragons = { label="Dragons", required=500, iconId=34, creatures={ "Dragon", "Dragon Hatchling" } },
+  quaras = { label="Quaras", required=500, iconId=241, creatures={ "Quara Mantassin", "Quara Mantassin Scout", "Quara Constrictor", "Quara Constrictor Scout", "Quara Pincher", "Quara Pincher Scout", "Quara Predator", "Quara Predator Scout", "Quara Hydromancer", "Quara Hydromancer Scout" } },
+  drefia_crypts = { label="Drefia Crypts", required=600, iconId=975, creatures={ "Gravedigger", "Zombie", "Blood Hand", "Necromancer" } },
+  ancient_scarabs = { label="Ancient Scarabs", required=500, iconId=79, creatures={ "Ancient Scarab" } },
+  giant_spiders = { label="Giant Spiders", required=500, iconId=38, creatures={ "Giant Spider" } },
+  laguna_islands = { label="Laguna Islands", required=500, iconId=259, creatures={ "Thornback Tortoise", "Tortoise", "Toad", "Blood Crab" } },
+  oramond = { label="Oramond", required=1000, iconId=1052, creatures={ "Minotaur Hunter", "Mooh'Tah Warrior", "Minotaur Amazon", "Worm Priestess", "Execowtioner", "Moohtant" } },
+  wyrms = { label="Wyrms", required=1000, iconId=461, creatures={ "Wyrm", "Elder Wyrm" } },
+  book_world = { label="Book World", required=2000, iconId=2673, creatures={ "Bluebeak", "Bramble Wyrmling", "Crusader", "Hawk Hopper", "Headwalker", "Lion Hydra" } },
+  cults = { label="Cults", required=1500, iconId=1512, creatures={ "Cult Believer", "Vicious Squire", "Cult Enforcer", "Renegade Knight", "Vile Grandmaster", "Cult Scholar", "Hero" } },
+  barkless = { label="Barkless", required=1000, iconId=1486, creatures={ "Barkless Devotee", "Barkless Fanatic" } },
+  feyrist_surface = { label="Feyrist Surface", required=1500, iconId=1434, creatures={ "Faun", "Dark Faun", "Nymph", "Pixie", "Pooka", "Twisted Pooka", "Swan Maiden" } },
+  deeplings = { label="Deeplings", required=1000, iconId=772, creatures={ "Deepling Spellsinger", "Deepling Scout", "Deepling Warrior", "Deepling Guard" } },
+  wereboars = { label="Wereboars", required=1500, iconId=1549, creatures={ "Werefox", "Werebadger", "Wereboar", "Werebear", "Werewolf" } },
+  minotaur_cults = { label="Minotaur Cults", required=1800, iconId=1508, creatures={ "Minotaur Cult Follower", "Minotaur Cult Prophet", "Minotaur Cult Zealot" } },
+  orc_cults = { label="Orc Cults", required=2000, iconId=2438, creatures={ "Orc Cult Fanatic", "Orc Cult Inquisitor", "Orc Cult Minion", "Orc Cult Priest", "Orc Cultist" } },
+  feyrist_nightmares = { label="Feyrist Nightmares", required=2000, iconId=1442, creatures={ "Weakened Frazzlemaw", "Enfeebled Silencer" } },
+  bandits = { label="Bandits", required=3000, iconId=1119, creatures={ "Glooth Bandit", "Glooth Brigand" } },
+  exotics = { label="Exotics", required=3500, iconId=2024, creatures={ "Exotic Cave Spider", "Exotic Bat" } },
+  pirats = { label="Pirats", required=2000, iconId=2038, creatures={ "Pirat Bombardier", "Pirat Cutthroat", "Pirat Mate", "Pirat Scoundrel" } },
+  werehyaenas = { label="Werehyaenas", required=2000, iconId=1963, creatures={ "Werehyaena", "Werehyaena Shaman" } },
+  dragon_lords = { label="Dragon Lords", required=2000, iconId=39, creatures={ "Dragon Lord", "Dragon Lord Hatchling" } },
+  frost_dragons = { label="Frost Dragons", required=2000, iconId=317, creatures={ "Frost Dragon", "Frost Dragon Hatchling" } },
+  banuta_deeper = { label="Banuta Deeper", required=2000, iconId=120, creatures={ "Medusa", "Serpent Spawn", "Hydra", "Eternal Guardian" } },
+  nightmares = { label="Nightmares", required=2000, iconId=33, creatures={ "Nightmare", "Nightmare Scion" } },
+  drakens = { label="Drakens", required=3000, iconId=673, creatures={ "Draken Abomination", "Draken Elite", "Draken Spellweaver", "Draken Warmaster", "Lizard Legionnaire", "Lizard Magistratus", "Lizard Noble", "Lizard Chosen", "Lizard Dragon Priest", "Lizard High Guard" } },
+  the_hive = { label="The Hive", required=3000, iconId=785, creatures={ "Waspoid", "Crawler", "Spitter", "Kollos", "Spidris", "Spidris Elite", "Hive Overseer" } },
+  iksupan = { label="Iksupan", required=5000, iconId=2437, creatures={ "Iks Yapunac", "Mitmah Scout", "Mitmah Seer" } },
+  carnivors = { label="Carnivors", required=5000, iconId=1723, creatures={ "Lumbering Carnivor", "Spiky Carnivor", "Menacing Carnivor" } },
+  nightmare_isles = { label="Nightmare Isles", required=3000, iconId=1017, creatures={ "Choking Fear", "Retching Horror", "Silencer" } },
+  warlock = { label="Warlock", required=2000, iconId=10, creatures={ "Warlock" } },
+  mota = { label="Mota", required=3000, iconId=291, creatures={ "Fury", "Floating Savant", "Demon", "Retching Horror", "Hellhound" } },
+  grim_reapers = { label="Grim Reapers", required=3000, iconId=519, creatures={ "Hellspawn", "Grim Reaper" } },
+  candia = { label="Candia", required=3500, iconId=2535, creatures={ "Candy Horror", "Nibblemaw", "Honey Elemental", "Angry Sugar Fairy", "Candy Floss Elemental", "Goggle Cake" } },
+  lycanthropes = { label="Lycanthropes", required=4000, iconId=1965, creatures={ "Werelion", "Werelioness" } },
+  the_void = { label="The Void", required=5000, iconId=1696, creatures={ "Breach Brood", "Dread Intruder", "Sparkion", "Reality Reaver" } },
+  asuras = { label="Asuras", required=5000, iconId=1134, creatures={ "Dawnfire Asura", "Midnight Asura", "Frost Flower Asura" } },
+  buried_cathedral = { label="Buried Cathedral", required=5000, iconId=1725, creatures={ "Gazer Spectre", "Burster Spectre", "Ripper Spectre", "Thanatursus", "Arachnophobica" } },
+  rathleton_catacombs = { label="Rathleton Catacombs", required=6000, iconId=287, creatures={ "Destroyer", "Dark Torturer", "Demon", "Grim Reaper", "Hellhound", "Hellspawn", "Juggernaut" } },
+  roshamuul = { label="Roshamuul", required=8000, iconId=2682, creatures={ "Guzzlemaw", "Frazzlemaw", "Silencer", "Choking Fear", "Retching Horror" } },
+  warzone_1 = { label="Warzone 1", required=3000, iconId=891, creatures={ "Hideous Fungus", "Humongous Fungus" } },
+  warzone_2 = { label="Warzone 2", required=5000, iconId=882, creatures={ "Weeper", "Magma Crawler", "Lost Berserker" } },
+  warzone_3 = { label="Warzone 3", required=5000, iconId=889, creatures={ "Cliff Strider", "Ironblight", "Orewalker" } },
+  weretigers = { label="Weretigers", required=6000, iconId=2386, creatures={ "Weretiger", "White Weretiger", "Cunning Werepanther" } },
+  winter_elves = { label="Winter Elves", required=10000, iconId=1734, creatures={ "Soul-broken Harbinger", "Crazed Winter Vanguard", "Crazed Winter Rearguard", "Arachnophobica" } },
+  summer_elves = { label="Summer Elves", required=8000, iconId=1733, creatures={ "Crazed Summer Rearguard", "Crazed Summer Vanguard", "Insane Siren", "Arachnophobica" } },
+  deathlings = { label="Deathlings", required=4000, iconId=1667, creatures={ "Deathling Scout", "Deathling Spellsinger" } },
+  great_pearl = { label="Great Pearl", required=8000, iconId=2259, creatures={ "Foam Stalker", "Two-headed Turtle" } },
+  nagas = { label="Nagas", required=8000, iconId=2262, creatures={ "Makara", "Naga Archer", "Naga Warrior" } },
+  carnisylvans = { label="Carnisylvans", required=8000, iconId=2109, creatures={ "Dark Carnisylvan", "Hulking Carnisylvan", "Poisonous Carnisylvan" } },
+  warzone_4 = { label="Warzone 4", required=7000, iconId=1546, creatures={ "Chasm Spawn", "Drillworm", "Elder Wyrm", "Lava Lurker" } },
+  warzone_5 = { label="Warzone 5", required=7000, iconId=1544, creatures={ "Cave Devourer", "High Voltage Elemental", "Tunnel Tyrant" } },
+  warzone_6 = { label="Warzone 6", required=12000, iconId=1531, creatures={ "Deepworm", "Diremaw", "Humongous Fungus" } },
+  seacrest = { label="Seacrest", required=5000, iconId=1096, creatures={ "Seacrest Serpent", "Sea Serpent", "Young Sea Serpent" } },
+  kilmaresh_deeper = { label="Kilmaresh Deeper", required=8000, iconId=1798, creatures={ "Burning Gladiator", "Black Sphinx Acolyte", "Priestess Of The Wild Sun" } },
+  kilmaresh_surface = { label="Kilmaresh Surface", required=15000, iconId=1808, creatures={ "Sphinx", "Manticore", "Lamassu", "Feral Sphinx", "Crypt Warden", "Young Goanna", "Adult Goanna" } },
+  falcon_bastion = { label="Falcon Bastion", required=16000, iconId=1646, creatures={ "Falcon Knight", "Falcon Paladin" } },
+  kilmaresh_mountains = { label="Kilmaresh Mountains", required=10000, iconId=1821, creatures={ "Ogre Rowdy", "Ogre Ruffian", "Ogre Sage" } },
+  roshamuul_prison = { label="Roshamuul Prison", required=12000, iconId=1019, creatures={ "Demon Outcast", "Blightwalker", "Plaguesmith", "Dark Torturer", "Hellhound", "Juggernaut" } },
+  cobra_bastion = { label="Cobra Bastion", required=20000, iconId=1775, creatures={ "Cobra Assassin", "Cobra Scout", "Cobra Vizier" } },
+  bulltaur_lair = { label="Bulltaur Lair", required=15000, iconId=2448, creatures={ "Bulltaur Alchemist", "Bulltaur Brute", "Bulltaur Forgepriest" } },
+  netherworld = { label="Netherworld", required=15000, iconId=1864, creatures={ "Flimsy Lost Soul", "Mean Lost Soul", "Freakish Lost Soul" } },
+  deep_desert = { label="Deep Desert", required=13000, iconId=46, creatures={ "Black Knight", "Guardian of the Sands", "Undead Sun Soldier", "Undead Cobra Scout" } },
+  nimmersatts = { label="Nimmersatt's", required=20000, iconId=2456, creatures={ "Dragolisk", "Mega Dragon", "Wardragon" } },
+  bashmus = { label="Bashmus", required=20000, iconId=2100, creatures={ "Bashmu", "Juvenile Bashmu" } },
+  girtablilu = { label="Girtablilu", required=15000, iconId=2099, creatures={ "Girtablilu Warrior", "Venerable Girtablilu" } },
+  true_asuras = { label="True Asuras", required=12000, iconId=1620, creatures={ "True Dawnfire Asura", "True Frost Flower Asura", "True Midnight Asura", "Hellhound" } },
+  ingol = { label="Ingol", required=25000, iconId=2339, creatures={ "Boar Man", "Carnivostrich", "Crape Man", "Harpy", "Liodile", "Rhindeer" } },
+  ferumbras_seal = { label="Ferumbras Seal", required=15000, iconId=1197, creatures={ "Vexclaw", "Grimeleech", "Hellflayer" } },
+  warzone_7 = { label="Warzone 7", required=20000, iconId=2094, creatures={ "Afflicted Strider", "Blemished Spawn", "Eyeless Devourer" } },
+  warzone_8 = { label="Warzone 8", required=15000, iconId=2095, creatures={ "Lavafungus", "Lavaworm", "Streaked Devourer" } },
+  warzone_9 = { label="Warzone 9", required=15000, iconId=2096, creatures={ "Cave Chimera", "Tremendous Tyrant", "Varnished Diremaw" } },
+  podzilla = { label="Podzilla", required=25000, iconId=2539, creatures={ "Rootthing Amber Shaper", "Rootthing Nutshell", "Rootthing Bug Tracker" } },
+  podzilla_deep = { label="Podzilla Deep", required=20000, iconId=2543, creatures={ "Quara Looter", "Quara Plunderer", "Quara Raider" } },
+  inferniarchs_castle = { label="Inferniarchs Castle", required=15000, iconId=2603, creatures={ "Broodrider Inferniarch", "Gorger Inferniarch", "Sineater Inferniarch" } },
+  earth_library = { label="Earth Library", required=12000, iconId=1652, creatures={ "Cursed Book", "Ink Blob", "Biting Book" } },
+  ice_library = { label="Ice Library", required=20000, iconId=1664, creatures={ "Icecold Book", "Squid Warden", "Animated Feather" } },
+  fire_library = { label="Fire Library", required=20000, iconId=1663, creatures={ "Burning Book", "Rage Squid", "Guardian Of Tales" } },
+  energy_library = { label="Energy Library", required=20000, iconId=1665, creatures={ "Energetic Book", "Brain Squid", "Energuardian Of Tales" } },
+  furious_crater = { label="Furious Crater", required=25000, iconId=1929, creatures={ "Vibrant Phantom", "Courage Leech", "Cloak Of Terror" } },
+  dark_thais = { label="Dark Thais", required=25000, iconId=1927, creatures={ "Many Faces", "Druid’s Apparition", "Knight’s Apparition", "Paladin’s Apparition", "Sorcerer’s Apparition", "Monk’s Apparition", "Distorted Phantom" } },
+  rotten_wasteland = { label="Rotten Wasteland", required=25000, iconId=0, creatures={ } },
+  claustrophobic_inferno = { label="Claustrophobic Inferno", required=25000, iconId=1930, creatures={ "Brachiodemon", "Infernal Demon", "Infernal Phantom" } },
+  inferniarchs_catacombs = { label="Inferniarchs Catacombs", required=25000, iconId=2601, creatures={ "Brinebrute Inferniarch", "Hellhunter Inferniarch", "Spellreaper Inferniarch" } },
+  ebb_and_flow = { label="Ebb And Flow", required=25000, iconId=1926, creatures={ "Bony Sea Devil", "Turbulent Elemental", "Capricious Phantom" } },
+  crystal_enigma = { label="Crystal Enigma", required=30000, iconId=2268, creatures={ "Emerald Tortoise", "Gore Horn", "Gorerilla", "Hulking Prehemoth", "Sabretooth" } },
+  sparkling_pools = { label="Sparkling Pools", required=30000, iconId=2275, creatures={ "Headpecker", "Mantosaurus", "Mercurial Menace", "Noxious Ripptor", "Shrieking Cry-stal" } },
+  graveyard = { label="Graveyard", required=30000, iconId=2264, creatures={ "Sulphider", "Sulphur Spouter", "Nighthunter", "Stalking Stalk", "Undertaker" } },
+  putrefatory = { label="Putrefatory", required=40000, iconId=2394, creatures={ "Meandering Mushroom", "Oozing Carcass", "Rotten Man-maggot", "Sopping Carcass" } },
+  gloom_pillars = { label="Gloom Pillars", required=40000, iconId=2379, creatures={ "Converter", "Darklight Construct", "Darklight Emitter", "Wandering Pillar" } },
+  jaded_roots = { label="Jaded Roots", required=40000, iconId=2392, creatures={ "Bloated Man-maggot", "Mycobiontic Beetle", "Oozing Corpus", "Sopping Corpus" } },
+  darklight_core = { label="Darklight Core", required=40000, iconId=2380, creatures={ "Darklight Matter", "Darklight Source", "Darklight Striker", "Walking Pillar" } },
+}
+
+local TASKS_BY_LEVEL = {
+  [1]={
+    "goblins","trolls","orcs","rotworms","minotaurs","dwarfs","dworcs",
+    "elves","dark_cathedral","tombs","scarabs","cyclops","mutateds","coryms",
+    "banuta_surface","pirates","barbarians","djinns","stonerefiners","dragons","quaras",
+    "drefia_crypts","ancient_scarabs","giant_spiders","laguna_islands"
+  },
+  [2]={
+    "oramond","wyrms","book_world","cults","barkless","feyrist_surface","deeplings",
+    "wereboars","minotaur_cults","orc_cults","feyrist_nightmares","bandits","exotics","pirats",
+    "werehyaenas","dragon_lords","frost_dragons","banuta_deeper","nightmares","drakens","the_hive",
+    "iksupan","carnivors","nightmare_isles","warlock"
+  },
+  [3]={
+    "mota","grim_reapers","candia","lycanthropes","the_void","asuras","buried_cathedral",
+    "rathleton_catacombs","roshamuul","warzone_1","warzone_2","warzone_3","weretigers","winter_elves",
+    "summer_elves","deathlings","great_pearl","nagas","carnisylvans","warzone_4","warzone_5",
+    "warzone_6","seacrest"
+  },
+  [4]={
+    "kilmaresh_deeper","kilmaresh_surface","falcon_bastion","kilmaresh_mountains","roshamuul_prison","cobra_bastion","bulltaur_lair",
+    "netherworld","deep_desert","nimmersatts","bashmus","girtablilu","true_asuras"
+  },
+  [5]={
+    "ingol","ferumbras_seal","warzone_7","warzone_8","warzone_9","podzilla","podzilla_deep",
+    "inferniarchs_castle"
+  },
+  [6]={
+    "earth_library","ice_library","fire_library","energy_library","furious_crater","dark_thais","rotten_wasteland",
+    "claustrophobic_inferno","inferniarchs_catacombs","ebb_and_flow"
+  },
+  [7]={
+    "crystal_enigma","sparkling_pools","graveyard","putrefatory","gloom_pillars","jaded_roots","darklight_core"
+  }
+}
+
+local nomes={"?","NIVEL 1","NIVEL 2","NIVEL 3","NIVEL 4","NIVEL 5","NIVEL 6","NIVEL 7"}
+
+storage=storage or {}
+storage.ragnarTasks=type(storage.ragnarTasks)=="table" and storage.ragnarTasks or {}
+storage.ragnarButton=type(storage.ragnarButton)=="table" and storage.ragnarButton or {enabled=false}
+storage._configs=storage._configs or {}
+storage._configs.cavebot_configs=storage._configs.cavebot_configs or {}
+storage._configs.targetbot_configs=storage._configs.targetbot_configs or {}
+local cfg,rb=storage.ragnarTasks,storage.ragnarButton
+cfg.completed=type(cfg.completed)=="table" and cfg.completed or {}
+cfg.progress=type(cfg.progress)=="table" and cfg.progress or {}
+cfg.level=math.max(1,math.min(7,tonumber(cfg.level) or 1))
+cfg.current=TASKS[cfg.current] and cfg.current or nil
+cfg.kills=math.max(0,tonumber(cfg.kills) or 0)
+cfg.required=math.max(0,tonumber(cfg.required) or 0)
+cfg.trackerPos=type(cfg.trackerPos)=="table" and cfg.trackerPos or {}
+cfg.trackerMinimized=cfg.trackerMinimized==true
+rb.enabled=rb.enabled==true
+
+for nivel,lista in ipairs(TASKS_BY_LEVEL) do
+  for _,chave in ipairs(lista) do
+    local t=TASKS[chave]
+    if t then t.key,t.level=chave,nivel end
+  end
+end
+
+local RAGNAR_REQUIRED_EXTRA={djinns=80}
+function ragnarRequired(key)
+  local task=key and TASKS[key]
+  return task and math.max(0,(tonumber(task.required) or 0)+(RAGNAR_REQUIRED_EXTRA[key] or 0)) or 0
+end
+
+ragnarButton = setupUI([[
+Panel
+  height: 19
+
+  BotSwitch
+    id: title
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    text-align: center
+    margin-right: 45
+    text: Task Ragnar
+    tooltip: Ligue para iniciar o auto task (PARTIDA SEMPRE DO DP DE THAIS).
+    height: 18
+    color: white
+
+  Button
+    id: settings
+    anchors.top: prev.top
+    anchors.left: prev.right
+    anchors.right: parent.right
+    margin-left: 2
+    height: 18
+    text: Config
+    opacity: 1.00
+    color: white
+]])
+
+ragnarInterface=setupUI([=[
+MainWindow
+  id: mainPanel
+  size: 430 300
+  text: Task Ragnar
+  margin-top: -50
+
+  FlatPanel
+    id: flatp
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-top: 2
+    margin-left: -5
+    margin-right: -5
+    height: 40
+    padding-top: 7
+    padding-left: 6
+    padding-bottom: 7
+    layout:
+      type: horizontalBox
+      spacing: 5
+
+  Button
+    id: listaTask
+    checkable: true
+    anchors.top: flatp.bottom
+    anchors.left: flatp.left
+    size: 180 30
+    margin-top: 15
+    text-align: center
+    text: LISTA DE TASK
+    font: cipsoftFont
+
+    UIItem
+      id: uiItem
+      anchors.top: parent.top
+      anchors.left: parent.left
+      margin-top: -4
+      margin-left: -9
+      size: 30 30
+      padding: 3
+      phantom: true
+
+  TextList
+    id: listTaskRagnar
+    anchors.top: listaTask.bottom
+    anchors.left: listaTask.left
+    anchors.right: listaTask.right
+    margin-right: 12
+    margin-left: 1
+    height: 150
+    padding: 1
+    vertical-scrollbar: listTaskRagnarScrollBar
+    opacity: 0.95
+    font: verdana-11px-rounded
+    layout:
+      type: verticalBox
+      fit-children: false
+
+  VerticalScrollBar
+    id: listTaskRagnarScrollBar
+    anchors.top: listTaskRagnar.top
+    anchors.bottom: listTaskRagnar.bottom
+    anchors.left: listTaskRagnar.right
+    step: 10
+    pixels-scroll: true
+    visible: true
+    opacity: 0.90
+
+  UIButton
+    id: transferToConcl
+    anchors.verticalCenter: listTaskRagnar.verticalCenter
+    anchors.left: listTaskRagnarScrollBar.right
+    size: 25 25
+    margin-left: 15
+    margin-top: -40
+    image-padding: 5
+    image-source: /images/ui/arrow_vertical
+    image-clip: 21 0 21 12
+    rotation: 90
+    tooltip: Marcar a Task como concluida.
+
+  UIButton
+    id: transferToList
+    anchors.top: prev.bottom
+    anchors.left: prev.left
+    size: 25 25
+    margin-left: 0
+    margin-top: 30
+    image-padding: 5
+    image-source: /images/ui/arrow_vertical
+    image-clip: 21 0 21 12
+    rotation: 270
+    tooltip: Marcar a Task como NAO concluida
+
+  Button
+    id: listaTaskConcl
+    checkable: true
+    anchors.top: flatp.bottom
+    anchors.right: flatp.right
+    size: 180 30
+    margin-top: 15
+    text-align: center
+    text: "     TASKS CONCLUIDAS"
+    font: cipsoftFont
+
+    UIItem
+      id: uiItem
+      anchors.top: parent.top
+      anchors.left: parent.left
+      margin-top: -8
+      margin-left: -9
+      size: 40 35
+      padding: 3
+      phantom: true
+
+  TextList
+    id: listTaskConcl
+    anchors.top: listaTaskConcl.bottom
+    anchors.left: listaTaskConcl.left
+    anchors.right: listaTaskConcl.right
+    margin-right: 12
+    margin-left: 1
+    height: 150
+    padding: 1
+    vertical-scrollbar: listTaskConclScrollBar
+    opacity: 0.95
+    font: verdana-11px-rounded
+    layout:
+      type: verticalBox
+      fit-children: false
+
+  VerticalScrollBar
+    id: listTaskConclScrollBar
+    anchors.top: listTaskConcl.top
+    anchors.bottom: listTaskConcl.bottom
+    anchors.left: listTaskConcl.right
+    step: 10
+    pixels-scroll: true
+    visible: true
+    opacity: 0.90
+
+  Button
+    id: closePanel
+    anchors.top: prev.bottom
+    anchors.left: flatp.left
+    anchors.right: flatp.right
+    text: CLOSE
+    font: cipsoftFont
+    margin-top: 8
+]=],g_ui.getRootWidget())
+
+ragnarInterface.listaTask.uiItem:setItemId(9186)
+ragnarInterface.listaTaskConcl.uiItem:setItemId(37423)
+
+taskInterface=setupUI([=[
+UIWindow
+  id: ragnarTracker
+  size: 250 90
+
+  Panel
+    anchors.fill: parent
+    image-source: /images/ui/miniwindow
+    image-border: 20
+
+  Panel
+    id: topBar
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    height: 25
+
+  Label
+    id: title
+    anchors.centerIn: topBar
+    text: "    Task Ragnar"
+    margin-left: -55
+    color: gray
+    margin-top: -4
+    text-auto-resize: true
+
+  Button
+    id: minimize
+    anchors.top: parent.top
+    anchors.right: parent.right
+    margin-top: 0
+    margin-right: 3
+    size: 20 18
+    text: -
+    font: verdana-11px-rounded
+    color: gray
+
+  Panel
+    id: content
+    anchors.top: topBar.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    margin: 5
+    margin-top: 1
+
+    UICreature
+      id: icon
+      anchors.left: parent.left
+      anchors.top: parent.top
+      anchors.bottom: parent.bottom
+      width: 60
+      margin-left: 2
+      border: 1 #4F4F4F
+
+    Panel
+      id: info
+      anchors.left: icon.right
+      anchors.right: parent.right
+      anchors.top: parent.top
+      anchors.bottom: parent.bottom
+      margin-left: 7
+
+      Label
+        id: taskName
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        margin-top: 3
+        height: 18
+        text: AGUARDANDO
+        text-align: center
+        color: white
+        font: cipsoftFont
+
+      Label
+        id: count
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: taskName.bottom
+        margin-top: 0
+        height: 18
+        text: 0/0
+        text-align: center
+        font: cipsoftFont
+        color: white
+
+      ProgressBar
+        id: progress
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: count.bottom
+        margin-top: 4
+        height: 18
+        minimum: 0
+        maximum: 100
+        margin-right: 2
+        value: 0
+        text: 0%
+        text-align: center
+        font: verdana-11px-rounded
+]=],g_ui.getRootWidget())
+taskInterface:hide()
+
+local function norm(s) return tostring(s or ""):lower():gsub("’","'"):gsub("_"," "):gsub("^%s+",""):gsub("%s+$",""):gsub("%s+"," ") end
+local function smart(s)
+  s=norm(s):gsub("^the%s+",""):gsub("[^%w%s]","")
+  return s:sub(-1)=="s" and s:sub(1,-2) or s
+end
+local function parseHunt(text)
+  local hunt=tostring(text or ""):match("[Yy]our hunt for%s+(.+)%s+has begun")
+  if not hunt then return end
+  hunt=smart(hunt)
+  for key,t in pairs(TASKS) do if smart(key)==hunt or smart(t.label)==hunt then return key end end
+end
+local function trackerBar(kills,required,emptyText)
+  kills,required=math.max(0,tonumber(kills) or 0),math.max(0,tonumber(required) or 0)
+  local pct=required>0 and math.min(100,math.floor(kills*100/required)) or 0
+  local info=taskInterface.content.info
+  local bar=info.progress
+
+  info.count:setText(required>0 and (kills.."/"..required) or (emptyText or "0/0"))
+  bar:setText(pct.."%")
+
+  if bar.setMinimum then pcall(function() bar:setMinimum(0) end) end
+  if bar.setMaximum then pcall(function() bar:setMaximum(100) end) end
+  if bar.setValue then
+    local ok=pcall(function() bar:setValue(pct) end)
+    if not ok then pcall(function() bar:setValue(pct,100) end) end
+  end
+  if bar.setPercent then pcall(function() bar:setPercent(pct) end) end
+end
+local function trackerIcon(t)
+  local icon=taskInterface.content.icon
+  if not t or (tonumber(t.iconId) or 0)<=0 then icon:hide(); return end
+  icon:show()
+  local outfit={type=tonumber(t.iconId) or 0,addons=0,mount=0,head=0,body=0,legs=0,feet=0}
+  if player and player.getOutfit then
+    local ok,o=pcall(function() return player:getOutfit() end)
+    if ok and type(o)=="table" then o.type=tonumber(t.iconId) or 0; o.addons=0; o.mount=0; outfit=o end
+  end
+  if icon.setOutfit then pcall(function() icon:setOutfit(outfit) end) end
+end
+local function refreshTracker()
+  if not rb.enabled then taskInterface:hide(); return end
+  taskInterface:show(); taskInterface:raise()
+  local t=cfg.current and TASKS[cfg.current]
+
+  if not t then
+    taskInterface.title:setText("Task Ragnar")
+    taskInterface.content.info.taskName:setText("AGUARDANDO")
+    taskInterface.content.icon:hide()
+    trackerBar(0,0,"0/0")
+    return
+  end
+
+  cfg.required=ragnarRequired(cfg.current)
+  cfg.progress[cfg.current]=type(cfg.progress[cfg.current])=="table" and cfg.progress[cfg.current] or {kills=cfg.kills}
+  cfg.kills=math.min(cfg.required,math.max(0,tonumber(cfg.progress[cfg.current].kills) or 0))
+  cfg.progress[cfg.current].kills=cfg.kills
+
+  taskInterface.title:setText("Task Ragnar (Nivel "..t.level..")")
+  taskInterface.content.info.taskName:setText(tostring(t.label):upper())
+  trackerIcon(t)
+  trackerBar(cfg.kills,cfg.required)
+end
+local function setTrackedTask(key)
+  local t=TASKS[key]
+  if not t then return end
+  cfg.current,cfg.required=key,ragnarRequired(key)
+  cfg.progress[key]=type(cfg.progress[key])=="table" and cfg.progress[key] or {kills=0}
+  cfg.kills=math.min(cfg.required,math.max(0,tonumber(cfg.progress[key].kills) or 0))
+  cfg.progress[key].kills=cfg.kills
+  refreshTracker()
+end
+local function setTrackerMinimized(on)
+  cfg.trackerMinimized=on==true
+  if cfg.trackerMinimized then taskInterface.content:hide() else taskInterface.content:show() end
+  taskInterface:setHeight(cfg.trackerMinimized and 32 or 90)
+  taskInterface.minimize:setText(cfg.trackerMinimized and "+" or "-")
+end
+taskInterface.minimize.onClick=function() setTrackerMinimized(not cfg.trackerMinimized) end
+taskInterface.onDragEnter=function(w,p) w:breakAnchors(); w.movingReference={x=p.x-w:getX(),y=p.y-w:getY()}; return true end
+taskInterface.onDragMove=function(w,p)
+  local r=w:getParent():getRect()
+  local x=math.min(math.max(r.x,p.x-w.movingReference.x),r.x+r.width-w:getWidth())
+  local y=math.min(math.max(r.y-w:getParent():getMarginTop(),p.y-w.movingReference.y),r.y+r.height-w:getHeight())
+  w:move(x,y); cfg.trackerPos={x=x,y=y}; return true
+end
+if cfg.trackerPos.x and cfg.trackerPos.y then taskInterface:setPosition({x=cfg.trackerPos.x,y=cfg.trackerPos.y}) end
+setTrackerMinimized(cfg.trackerMinimized)
+
+local KS={seen={},counted={},death={},loot={},pending={},lastLoot={text="",source="",time=0},lastHit={text="",source="",time=0}}
+local CANCEL_MSG,lastCancel="your task has been canceled",0
+local pendingReportKey,pendingReportStarted=nil,0
+local function taskCancelada(text) return norm(text):find(CANCEL_MSG,1,true)~=nil end
+function ragnarClearTask()
+  local key=cfg.current
+  if key then cfg.progress[key]=nil end
+  pendingReportKey,pendingReportStarted=nil,0
+  cfg.current,cfg.kills,cfg.required=nil,0,0
+  KS.seen,KS.counted,KS.death,KS.loot,KS.pending={},{},{},{},{}
+  KS.lastLoot,KS.lastHit={text="",source="",time=0},{text="",source="",time=0}
+  refreshTracker()
+  return key
+end
+local function handleTaskCancel(text)
+  if not taskCancelada(text) then return false end
+  local t=tonumber(now) or os.time()*1000
+  if t-lastCancel>500 then lastCancel=t; ragnarClearTask() end
+  return true
+end
+
+local LOOT_PATTERNS={"[Ll]oot of an (.-):","[Ll]oot of a (.-):","[Ll]oot of the (.-):","[Ll]oot of (.-):"}
+local HIT_PATTERNS={
+  "^[Aa]n? (.-) [Ll]oses? %d+ [Hh]itpoints? due to your attack%.?$",
+  "^[Tt]he (.-) [Ll]oses? %d+ [Hh]itpoints? due to your attack%.?$",
+  "^(.-) [Ll]oses? %d+ [Hh]itpoints? due to your attack%.?$",
+  "^[Yy]ou deal %d+ damage to an? (.-)%.?$",
+  "^[Yy]ou deal %d+ damage to the (.-)%.?$",
+  "^[Yy]ou deal %d+ damage to (.-)%.?$"
+}
+local function nowMs() return tonumber(now) or os.time()*1000 end
+local function parseBy(text,patterns)
+  text=tostring(text or "")
+  for _,p in ipairs(patterns) do local mob=text:match(p); if mob then return mob end end
+end
+local function lootMob(text) return parseBy(text,LOOT_PATTERNS) end
+local function hitMob(text) return parseBy(text,HIT_PATTERNS) end
+local function taskMob(name,key)
+  local t=TASKS[key or cfg.current]
+  if not t then return false end
+  name=norm(name)
+  for _,mob in ipairs(t.creatures) do if name==norm(mob) then return true end end
+  return false
+end
+local function tileStats(pos)
+  local tile=pos and g_map.getTile(pos)
+  local containers,items,top,topContainer=0,0,0,false
+  if tile and tile.getItems then
+    local list=tile:getItems() or {}; items=#list
+    for _,item in ipairs(list) do
+      if item.isContainer then local ok,v=pcall(function() return item:isContainer() end); if ok and v then containers=containers+1 end end
+    end
+    local thing=tile:getTopUseThing()
+    if thing then
+      if thing.getId then top=thing:getId() end
+      if thing.isContainer then local ok,v=pcall(function() return thing:isContainer() end); topContainer=ok and v or false end
+    end
+  end
+  return containers,items,top,topContainer
+end
+local function addKill()
+  local t=cfg.current and TASKS[cfg.current]
+  if not rb.enabled or not t then return end
+  cfg.progress[cfg.current]=type(cfg.progress[cfg.current])=="table" and cfg.progress[cfg.current] or {kills=0}
+  cfg.required=ragnarRequired(cfg.current)
+  cfg.kills=math.min(cfg.required,(tonumber(cfg.progress[cfg.current].kills) or 0)+1)
+  cfg.progress[cfg.current].kills=cfg.kills; refreshTracker()
+end
+local function queue(tab,name,value) name=norm(name); tab[name]=tab[name] or {}; table.insert(tab[name],value) end
+local function consumeTime(tab,name,maxAge)
+  local q,t=tab[norm(name)],nowMs()
+  if not q then return false end
+  while q[1] and t-q[1]>maxAge do table.remove(q,1) end
+  if q[1] then table.remove(q,1); return true end
+  tab[norm(name)]=nil; return false
+end
+local function track(c)
+  if not rb.enabled or not cfg.current or not c or not taskMob(c:getName()) then return end
+  if c.isMonster then local ok,v=pcall(function() return c:isMonster() end); if ok and not v then return end end
+  local id,pos=c:getId(),c:getPosition()
+  KS.seen[id]=KS.seen[id] or {id=id,name=c:getName(),task=cfg.current}
+  local s=KS.seen[id]
+  s.name,s.task,s.pos,s.time=c:getName(),cfg.current,pos,nowMs()
+  s.hp=tonumber(c:getHealthPercent()) or s.hp or 100
+  s.containers,s.items,s.top,s.topContainer=tileStats(pos)
+  return s
+end
+local function countDeath(s)
+  if not s or not s.hit or not rb.enabled or s.task~=cfg.current or not taskMob(s.name,s.task) then return end
+  local t=nowMs()
+  if KS.counted[s.id] and t-KS.counted[s.id]<5000 then return end
+  KS.counted[s.id]=t
+  if consumeTime(KS.loot,s.name,500) then return end
+  addKill(); queue(KS.death,s.name,t)
+end
+local function pending(s)
+  if not s then return end
+  s.deadEvidence,s.deadAt=true,nowMs()
+  if s.hit then return countDeath(s) end
+  queue(KS.pending,s.name,s)
+end
+local function takePending(name,maxAge)
+  local q,t=KS.pending[norm(name)],nowMs()
+  if not q then return end
+  while q[1] and t-(q[1].deadAt or 0)>maxAge do table.remove(q,1) end
+  local s=table.remove(q,1)
+  if #q==0 then KS.pending[norm(name)]=nil end
+  return s
+end
+local function recentSeen(name)
+  local best,a=0,g_game.getAttackingCreature()
+  if a and norm(a:getName())==norm(name) then
+    local s=KS.seen[a:getId()] or track(a)
+    if s then return s end
+  end
+  local found
+  for _,s in pairs(KS.seen) do
+    if s.task==cfg.current and norm(s.name)==norm(name) and nowMs()-(s.time or 0)<2500 and (s.time or 0)>best then found,best=s,s.time end
+  end
+  return found
+end
+local function markHit(name)
+  if not rb.enabled or not cfg.current or not taskMob(name) then return end
+  local s=takePending(name,900) or recentSeen(name)
+  if not s then return end
+  s.hit,s.hitAt=true,nowMs()
+  if s.deadEvidence or (tonumber(s.hp) or 100)<=0 then countDeath(s) end
+end
+local function handleHit(text,source)
+  if not rb.enabled or not cfg.current then return end
+  local mob=hitMob(text)
+  if not mob or not taskMob(mob) then return end
+  local sig,t=norm(text),nowMs()
+  if sig==KS.lastHit.text and source~=KS.lastHit.source and t-KS.lastHit.time<250 then return end
+  KS.lastHit={text=sig,source=source,time=t}; markHit(mob)
+end
+local function handleLoot(text,source)
+  if not rb.enabled or not cfg.current then return end
+  local mob=lootMob(text)
+  if not mob or not taskMob(mob) then return end
+  local sig,t=norm(text),nowMs()
+  if sig==KS.lastLoot.text and source~=KS.lastLoot.source and t-KS.lastLoot.time<250 then return end
+  KS.lastLoot={text=sig,source=source,time=t}
+  if consumeTime(KS.death,mob,1500) then return end
+  addKill(); queue(KS.loot,mob,t)
+end
+local function healthChange(c,hp)
+  if not rb.enabled or not cfg.current or not c then return end
+  local id=c:getId()
+  local s=KS.seen[id]
+  if not s then
+    local a=g_game.getAttackingCreature()
+    if not a or a:getId()~=id then return end
+    s=track(c)
+  end
+  if not s or s.task~=cfg.current then return end
+  hp=tonumber(hp) or tonumber(c:getHealthPercent()) or s.hp or 100
+  s.hp,s.pos,s.time=hp,c:getPosition(),nowMs()
+  if hp<=0 then pending(s) end
+end
+
+if type(onAttackingCreatureChange)=="function" then onAttackingCreatureChange(function(c) if c then track(c) end end) end
+if type(onCreatureHealthPercentChange)=="function" then onCreatureHealthPercentChange(function(c,hp) healthChange(c,hp) end) end
+if type(onCreaturePositionChange)=="function" then
+  onCreaturePositionChange(function(c,newPos)
+    local s=c and KS.seen[c:getId()]
+    if s and newPos then
+      s.pos,s.time=newPos,nowMs()
+      s.containers,s.items,s.top,s.topContainer=tileStats(newPos)
+    end
+  end)
+end
+if type(onCreatureDisappear)=="function" then
+  onCreatureDisappear(function(c)
+    if not rb.enabled or not cfg.current or not c then return end
+    local s=KS.seen[c:getId()]
+    if not s or s.task~=cfg.current then return end
+    local ok,hp=pcall(function() return c:getHealthPercent() end)
+    hp=ok and tonumber(hp) or s.hp
+    if hp and hp<=0 then pending(s); return end
+    local bc,bi,bt,pos=s.containers or 0,s.items or 0,s.top or 0,s.pos
+    schedule(100,function()
+      if not rb.enabled or cfg.current~=s.task then return end
+      local containers,items,top,topContainer=tileStats(pos)
+      if containers>bc or (topContainer and top~=bt) or (s.hit and items>bi) then pending(s) end
+    end)
+  end)
+end
+
+macro(50,function()
+  if not rb.enabled or not cfg.current then return end
+  local c=g_game.getAttackingCreature()
+  if c then
+    local s=KS.seen[c:getId()] or track(c)
+    if s then
+      s.time,s.pos=nowMs(),c:getPosition()
+      local hp=tonumber(c:getHealthPercent())
+      if hp then s.hp=hp; if hp<=0 then pending(s) end end
+      s.containers,s.items,s.top,s.topContainer=tileStats(s.pos)
+    end
+  end
+end)
+macro(1000,function()
+  local t=nowMs()
+  for id,s in pairs(KS.seen) do if t-(s.time or 0)>12000 then KS.seen[id]=nil end end
+  for id,v in pairs(KS.counted) do if t-v>6000 then KS.counted[id]=nil end end
+  for name,q in pairs(KS.pending) do
+    while q[1] and t-(q[1].deadAt or 0)>1200 do table.remove(q,1) end
+    if #q==0 then KS.pending[name]=nil end
+  end
+  if rb.enabled then if not taskInterface:isVisible() then refreshTracker() end elseif taskInterface:isVisible() then taskInterface:hide() end
+end)
+
+local function caveDoNivel(n) return "LNS_Task"..n end
+local function caveRagnar(v) return type(v)=="string" and v:match("^LNS_Task[1-7]$")~=nil end
+local function setRagnar(on)
+  rb.enabled=on==true; ragnarButton.title:setOn(rb.enabled)
+  local caveCfg,targetCfg=storage._configs.cavebot_configs,storage._configs.targetbot_configs
+  if rb.enabled then
+    local cave=caveDoNivel(cfg.level)
+    if caveCfg.selected~=cave then CaveBot.setOff(); caveCfg.selected=cave end
+    if targetCfg.selected~="Target_Tasks" then TargetBot.setOff(); targetCfg.selected="Target_Tasks" end
+    CaveBot.setOn(); TargetBot.setOn(); refreshTracker()
+  else
+    taskInterface:hide()
+    if caveRagnar(caveCfg.selected) then CaveBot.setOff(); TargetBot.setOff() end
+  end
+end
+
+ragnarButton.title.onClick=function(w) setRagnar(not w:isOn()) end
+ragnarButton.settings.onClick=function() ragnarInterface:show(); ragnarInterface:raise(); ragnarInterface:focus() end
+ragnarInterface.closePanel.onClick=function() ragnarInterface:hide() end
+
+local ROW_UI=[=[
+Button
+  height: 21
+  margin-bottom: 1
+  margin-right: 1
+  font: cipsoftFont
+  text-align: left
+  text-offset: 4 0
+]=]
+local nivelButtons,nivelButton,taskButton,taskKey,taskConcluida={}
+
+local function marcar(w,on)
+  if w.setChecked then w:setChecked(on) end
+  if w.setPressed then w:setPressed(on) end
+  if w.setOn then w:setOn(on) end
+  w:setOpacity(on and 1 or .74)
+  w:setColor(on and "#d7c08a" or (w.taskConcluida and "#8fcf70" or "gray"))
+end
+
+local function limpar(w)
+  local c=w:getChildren()
+  for i=#c,1,-1 do c[i]:destroy() end
+end
+
+local function tooltip(t)
+  local required=ragnarRequired(t.key)
+  local extra=RAGNAR_REQUIRED_EXTRA[t.key] or 0
+  return "Required: "..required..(extra>0 and " ("..t.required.." + "..extra.." safety)" or "")..
+         "\nCreatures: "..(#t.creatures>0 and table.concat(t.creatures,", ") or "N/A")
+end
+
+local function selecionarTask(b,chave,concluida)
+  if taskButton and taskButton~=b then marcar(taskButton,false) end
+  taskButton,taskKey,taskConcluida=b,chave,concluida
+  marcar(b,true)
+end
+
+local function addTask(lista,chave,concluida)
+  local t=TASKS[chave]
+  if not t then return end
+  local b=setupUI(ROW_UI,lista)
+  b.taskKey,b.taskData,b.taskConcluida=chave,t,concluida
+  b:setText(t.label); b:setTooltip(tooltip(t)); marcar(b,false)
+  b.onClick=function() selecionarTask(b,chave,concluida) end
+end
+
+local function atualizar()
+  limpar(ragnarInterface.listTaskRagnar); limpar(ragnarInterface.listTaskConcl)
+  taskButton,taskKey,taskConcluida=nil,nil,nil
+  for _,chave in ipairs(TASKS_BY_LEVEL[cfg.level]) do
+    local concluida=cfg.completed[chave]==true
+    addTask(concluida and ragnarInterface.listTaskConcl or ragnarInterface.listTaskRagnar,chave,concluida)
+  end
+end
+
+local function selecionarNivel(nivel)
+  if nivelButton and nivelButton~=nivelButtons[nivel] then marcar(nivelButton,false) end
+  if cfg.current and TASKS[cfg.current] and TASKS[cfg.current].level~=nivel then cfg.current,cfg.kills,cfg.required=nil,0,0 end
+  cfg.level,nivelButton=nivel,nivelButtons[nivel]
+  marcar(nivelButton,true); atualizar(); if rb.enabled then setRagnar(true) end
+end
+
+for i,nome in ipairs(nomes) do
+  local b=g_ui.createWidget("Button",ragnarInterface.flatp)
+  b:setText(nome); b:setWidth(i==1 and 18 or 49); b:setHeight(22); b:setFont("cipsoftFont")
+  if i==1 then b:setTooltip("Selecione o Nivel da Task para prosseguir.")
+  else
+    local nivel=i-1
+    nivelButtons[nivel]=b; marcar(b,false)
+    b.onClick=function() selecionarNivel(nivel) end
+  end
+end
+
+ragnarInterface.transferToConcl.onClick=function()
+  if not taskKey or taskConcluida then return end
+  cfg.completed[taskKey]=true; atualizar()
+end
+
+ragnarInterface.transferToList.onClick=function()
+  if not taskKey or not taskConcluida then return end
+  cfg.completed[taskKey]=nil; atualizar()
+end
+
+selecionarNivel(cfg.level)
+setRagnar(rb.enabled)
+ragnarInterface:hide()
+
+function ragnarAvailableTasks()
+  local out={}
+  for _,key in ipairs(TASKS_BY_LEVEL[cfg.level] or {}) do
+    if TASKS[key] and cfg.completed[key]~=true then out[#out+1]=key end
+  end
+  return out
+end
+function ragnarActiveTask()
+  local key=cfg.current
+  return key and TASKS[key] and TASKS[key].level==cfg.level and cfg.completed[key]~=true and key or nil
+end
+function ragnarHasTask() return ragnarActiveTask()~=nil end
+local function ragnarTaskComplete(key)
+  local task=key and TASKS[key]
+  if not task then return false,0,0 end
+  local progress=cfg.progress[key]
+  local kills=tonumber(progress and progress.kills) or tonumber(cfg.kills) or 0
+  local required=ragnarRequired(key)
+  return required>0 and kills>=required,kills,required
+end
+function ragnarGotoTask()
+  local active=ragnarActiveTask()
+  local label="pegar_task"
+
+  if active then
+    local complete=ragnarTaskComplete(active)
+    label=complete and "reportTask" or active
+  end
+
+  CaveBot.gotoLabel(label)
+  return label
+end
+
+local npcBusy=false
+local function npcSequence(words,done,i)
+  i=i or 1
+  if not words[i] then npcBusy=false; if done then done() end; return end
+  NPC.say(words[i])
+  schedule(500,function() npcSequence(words,done,i+1) end)
+end
+local function startNpcSequence(words,done)
+  if npcBusy then return false end
+  npcBusy=true; npcSequence(words,done); return true
+end
+local REPORT_CONFIRMATIONS={
+  "your efforts have not gone unnoticed. the task is complete, and your reward has been granted",
+  "you have my thanks, adventurer, your deeds strengthen these lands",
+  "should you seek another hunt, simply speak task when you are ready"
+}
+local REPORT_CONFIRM_TIMEOUT=20000
+
+local function isRagnarReportConfirmation(text)
+  local msg=norm(text)
+  for _,fragment in ipairs(REPORT_CONFIRMATIONS) do
+    if msg:find(fragment,1,true) then return true end
+  end
+  return false
+end
+
+local function handleRagnarReportConfirmation(name,text)
+  if name and norm(name)~="ragnar" then return false end
+  if not pendingReportKey or not isRagnarReportConfirmation(text) then return false end
+
+  local key=pendingReportKey
+  if nowMs()-pendingReportStarted>REPORT_CONFIRM_TIMEOUT then
+    pendingReportKey,pendingReportStarted=nil,0
+    return false
+  end
+
+  if cfg.current~=key then
+    pendingReportKey,pendingReportStarted=nil,0
+    return false
+  end
+
+  local complete=ragnarTaskComplete(key)
+  if not complete then
+    pendingReportKey,pendingReportStarted=nil,0
+    return false
+  end
+
+  cfg.completed[key]=true
+  ragnarClearTask()
+  atualizar()
+  print("Task Ragnar: task reportada e confirmada pelo NPC.")
+  return true
+end
+
+function ragnarReportTask()
+  local key=ragnarActiveTask()
+  if not key or pendingReportKey then return false end
+
+  local complete,kills,required=ragnarTaskComplete(key)
+  if not complete then
+    print("Task Ragnar: task incompleta ("..kills.."/"..required.."). Report cancelado.")
+    return false,kills,required
+  end
+
+  pendingReportKey,pendingReportStarted=key,nowMs()
+  if not startNpcSequence({"hi","report","yes"}) then
+    pendingReportKey,pendingReportStarted=nil,0
+    return false
+  end
+
+  schedule(REPORT_CONFIRM_TIMEOUT,function()
+    if pendingReportKey==key and nowMs()-pendingReportStarted>=REPORT_CONFIRM_TIMEOUT then
+      pendingReportKey,pendingReportStarted=nil,0
+      print("Task Ragnar: nenhuma confirmação de conclusão foi recebida; a task foi mantida ativa.")
+    end
+  end)
+
+  return true
+end
+
+onTalk(function(name,level,mode,text,channelId)
+  if name and norm(name)=="ragnar" then
+    if handleTaskCancel(text) then return end
+    if handleRagnarReportConfirmation(name,text) then return end
+  end
+  if not rb.enabled then return end
+  if channelId==11 then handleLoot(text,"talk"); handleHit(text,"talk") end
+  if name and norm(name)=="ragnar" then local key=parseHunt(text); if key then setTrackedTask(key) end end
+end)
+onTextMessage(function(mode,text)
+  if handleTaskCancel(text) then return end
+  if handleRagnarReportConfirmation(nil,text) then return end
+  if not rb.enabled then return end
+  local key=parseHunt(text); if key then setTrackedTask(key) end
+  handleHit(text,"text"); handleLoot(text,"text")
+end)
+function ragnarRandomTask()
+  if npcBusy or ragnarActiveTask() then return false end
+  local list=ragnarAvailableTasks()
+  if #list==0 then CaveBot.gotoLabel("Trainer"); return nil end
+  local key=list[math.random(#list)]
+  if not startNpcSequence({"hi","task",TASKS[key].label,"yes"}) then return false end
+  return key,TASKS[key]
+end
+
+function checkRagnarAndamento(labelTask,labelRetorno)
+  local key=cfg.current
+  local task=key and TASKS[key]
+
+  local progresso=cfg.progress[key]
+  local kills=tonumber(progresso and progresso.kills) or tonumber(cfg.kills) or 0
+  local required=ragnarRequired(key)
+  local concluida=required>0 and kills>=required
+  local label=concluida and labelRetorno or labelTask
+
+  CaveBot.gotoLabel(label)
+  return concluida,label,kills,required
+end
+
+function checkSupplies(labelSemSupply,labelComSupply)
+  if not Supplies or type(Supplies.hasEnough)~="function" then
+    print("CaveBot[SupplyCheck]: Supplies.hasEnough não está disponível.")
+    return false
+  end
+
+  local data=Supplies.hasEnough()
+
+  if type(data)=="table" then
+    print(
+      "CaveBot[SupplyCheck]: Supply insuficiente. Item: "..
+      tostring(data.id).." | Quantidade: "..tostring(data.amount)
+    )
+
+    if labelSemSupply then
+      CaveBot.gotoLabel(labelSemSupply)
+    end
+
+    return false,data
+  end
+
+  if labelComSupply then
+    CaveBot.gotoLabel(labelComSupply)
+  end
+
+  return true
+end
+end)
