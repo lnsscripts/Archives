@@ -15490,23 +15490,13 @@ local AUTO_ICONS = {
     itemId = 52662,
     text = "CHASE",
     show = false,
-
+  
     read = function()
-      return g_game and g_game.getChaseMode and g_game.getChaseMode() == 1
+      return g_game.getChaseMode() == 1
     end,
-
+  
     write = function(state)
-      if not g_game or not g_game.setChaseMode or not g_game.getChaseMode then return end
-
-      if state == true then
-        if g_game.getChaseMode() ~= 1 then
-          g_game.setChaseMode(1)
-        end
-      else
-        if g_game.getChaseMode() ~= 0 then
-          g_game.setChaseMode(0)
-        end
-      end
+      g_game.setChaseMode(state and 1 or 0)
     end
   },
 
@@ -16290,6 +16280,14 @@ iconesInterface.pesquisaIcons.onTextChange = function(_, text)
   end
 end
 
+macro(200, function()
+  if not boundStates["chase_mode"] then return end
+
+  if g_game.getChaseMode() ~= 1 then
+    g_game.setChaseMode(1)
+  end
+end)
+
 macro(2000, function()
   updateAllIcons()
 end)
@@ -16299,8 +16297,6 @@ saveIcons()
 end)
 
 lnsRunBlock("Task_Ragnar", function()
-print("Correcao Ragnar_REPORT3 = OK")
-
 local TASKS = {
   goblins = { label="Goblins", required=100, iconId=61, creatures={ "Goblin", "Goblin Assassin", "Goblin Leader", "Goblin Scavenger" } },
   trolls = { label="Trolls", required=100, iconId=15, creatures={ "Troll", "Swamp Troll", "Frost Troll", "Island Troll" } },
