@@ -5437,10 +5437,32 @@ macro(500, function()
   local s=txt("spellUtura"); say(s~="" and s or "UTURA GRAN"); uturaUntil=now+60500
 end)
 
-local cures={{"isPoisioned","exana pox"},{"isBurning","exana flam"},{"isEnergized","exana vis"},{"isCursed","exana mort"},{"isBleeding","exana kor"}}
+local vocationType = {[1] = "knight", [2] = "paladin",  [3] = "sorcerer",  [4] = "druid",  [5] = "monk",  [6] = "knight",  [7] = "paladin",  [8] = "sorcerer",  [9] = "druid",  [10] = "monk"}
+local cures = {
+  knight = { {isPoisioned, "exana pox"}, {isBleeding, "exana kor"} },
+  paladin = { {isPoisioned, "exana pox"},{isCursed, "exana mort"}  },
+  sorcerer = {{isPoisioned, "exana pox"} },
+  druid = {{isPoisioned, "exana pox"}, {isBurning, "exana flam"}, {isEnergized, "exana vis"}, {isBleeding, "exana kor"} },
+  monk = { {isPoisioned, "exana pox"} }
+}
+
 macro(200, function()
   if not active("ativadorCureStatus") or g_game.isAttacking() then return end
-  for _,v in ipairs(cures) do local f=_G[v[1]]; if f and f() then say(v[2]); return end end
+
+  local player = g_game.getLocalPlayer()
+  if not player then return end
+
+  local vocation = vocationType[player:getVocation()]
+  local vocationCures = cures[vocation]
+
+  if not vocationCures then return end
+  for _, cure in ipairs(vocationCures) do
+    if cure[1]() then
+      say(cure[2])
+      delay(5000)
+      return
+    end
+  end
 end)
 
 macro(200, function()
