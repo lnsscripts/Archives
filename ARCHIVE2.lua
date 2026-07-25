@@ -7675,7 +7675,7 @@ saveScrollImbue()
 -- =========================================================
 
 local BLANK_SCROLL_ID = 51442
-local SHRINES = {25060, 25061, 25175, 25182, 25183}
+local SHRINES = {25060, 25061, 25174, 25175, 25182, 25183}
 
 -- IDs finais dos scrolls ja imbuídos, usados para contar quanto falta fazer.
 local SCROLL_RESULT_IDS = {
@@ -9676,7 +9676,7 @@ local GROUP_TO_SHRINE_TEXT = {
   ["Cloud Fabric"]   = "Elemental Protection (Energy)",
 }
 
-local SHRINES = {25060, 25061, 25182, 25183}
+local SHRINES = {25060, 25061, 25174, 25175, 25182, 25183}
 local PORTABLE_SHRINE = 14513
 local RECENT_ACTION_MS = 10000
 
