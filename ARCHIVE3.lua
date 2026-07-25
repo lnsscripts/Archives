@@ -16297,6 +16297,8 @@ saveIcons()
 end)
 
 lnsRunBlock("Task_Ragnar", function()
+print("Ragnar AntiBug = OK")
+
 local TASKS = {
   goblins = { label="Goblins", required=100, iconId=61, creatures={ "Goblin", "Goblin Assassin", "Goblin Leader", "Goblin Scavenger" } },
   trolls = { label="Trolls", required=100, iconId=15, creatures={ "Troll", "Swamp Troll", "Frost Troll", "Island Troll" } },
@@ -17305,18 +17307,38 @@ function ragnarRandomTask()
   return key,TASKS[key]
 end
 
-function checkRagnarAndamento(labelTask,labelRetorno)
-  local key=cfg.current
-  local task=key and TASKS[key]
+function ragnarSetCaveTask(taskKey)
+  if not TASKS[taskKey] then
+    print("Task Ragnar: cave inválida: "..tostring(taskKey))
+    return false
+  end
 
-  local progresso=cfg.progress[key]
-  local kills=tonumber(progresso and progresso.kills) or tonumber(cfg.kills) or 0
-  local required=ragnarRequired(key)
-  local concluida=required>0 and kills>=required
-  local label=concluida and labelRetorno or labelTask
+  cfg.caveAtual = taskKey
+  return true
+end
+
+function checkRagnarAndamento(labelTask, labelSaida)
+  local taskAtiva = ragnarActiveTask()
+  local caveAtual = cfg.caveAtual
+
+  -- Está em uma cave diferente da task ativa
+  if not taskAtiva or not caveAtual or taskAtiva ~= caveAtual then
+    print(
+      "Task Ragnar: cave incorreta. Task ativa: "..
+      tostring(taskAtiva).." | Cave atual: "..tostring(caveAtual)
+    )
+
+    CaveBot.gotoLabel(labelSaida)
+    return false, labelSaida, 0, 0, "cave_incorreta"
+  end
+
+  local concluida, kills, required = ragnarTaskComplete(taskAtiva)
+  local label = concluida and labelSaida or labelTask
 
   CaveBot.gotoLabel(label)
-  return concluida,label,kills,required
+
+  return concluida, label, kills, required,
+    concluida and "task_concluida" or "task_em_andamento"
 end
 
 function checkSupplies(labelSemSupply,labelComSupply)
@@ -17346,5 +17368,4 @@ function checkSupplies(labelSemSupply,labelComSupply)
 
   return true
 end
-
 end)
