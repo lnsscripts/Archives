@@ -17307,25 +17307,26 @@ function ragnarRandomTask()
   return key,TASKS[key]
 end
 
+local ragnarCaveAtual = nil
+
 function ragnarSetCaveTask(taskKey)
   if not TASKS[taskKey] then
     print("Task Ragnar: cave inválida: "..tostring(taskKey))
     return false
   end
 
-  cfg.caveAtual = taskKey
+  ragnarCaveAtual = taskKey
   return true
 end
 
 function checkRagnarAndamento(labelTask, labelSaida)
   local taskAtiva = ragnarActiveTask()
-  local caveAtual = cfg.caveAtual
 
-  -- Está em uma cave diferente da task ativa
-  if not taskAtiva or not caveAtual or taskAtiva ~= caveAtual then
+  -- Só valida a cave quando ela tiver sido configurada
+  if ragnarCaveAtual and taskAtiva ~= ragnarCaveAtual then
     print(
       "Task Ragnar: cave incorreta. Task ativa: "..
-      tostring(taskAtiva).." | Cave atual: "..tostring(caveAtual)
+      tostring(taskAtiva).." | Cave atual: "..tostring(ragnarCaveAtual)
     )
 
     CaveBot.gotoLabel(labelSaida)
@@ -17337,8 +17338,7 @@ function checkRagnarAndamento(labelTask, labelSaida)
 
   CaveBot.gotoLabel(label)
 
-  return concluida, label, kills, required,
-    concluida and "task_concluida" or "task_em_andamento"
+  return concluida, label, kills, required
 end
 
 function checkSupplies(labelSemSupply,labelComSupply)
