@@ -16297,8 +16297,6 @@ saveIcons()
 end)
 
 lnsRunBlock("Task_Ragnar", function()
-print("Ragnar AntiBug = OK")
-
 local TASKS = {
   goblins = { label="Goblins", required=100, iconId=61, creatures={ "Goblin", "Goblin Assassin", "Goblin Leader", "Goblin Scavenger" } },
   trolls = { label="Trolls", required=100, iconId=15, creatures={ "Troll", "Swamp Troll", "Frost Troll", "Island Troll" } },
@@ -16466,6 +16464,7 @@ cfg.kills=math.max(0,tonumber(cfg.kills) or 0)
 cfg.required=math.max(0,tonumber(cfg.required) or 0)
 cfg.trackerPos=type(cfg.trackerPos)=="table" and cfg.trackerPos or {}
 cfg.trackerMinimized=cfg.trackerMinimized==true
+cfg.questTrackerProgress=type(cfg.questTrackerProgress)=="table" and cfg.questTrackerProgress or {}
 rb.enabled=rb.enabled==true
 
 for nivel,lista in ipairs(TASKS_BY_LEVEL) do
@@ -16475,10 +16474,36 @@ for nivel,lista in ipairs(TASKS_BY_LEVEL) do
   end
 end
 
+-- Detecta o cliente mobile sem gerar erro caso algum objeto nao exista.
+local function ragnarIsMobile()
+  if not modules or not modules._G or not modules._G.g_app or
+     type(modules._G.g_app.isMobile)~="function" then
+    return false
+  end
+
+  local ok,mobile=pcall(function()
+    return modules._G.g_app.isMobile()
+  end)
+
+  return ok and mobile==true
+end
+
 local RAGNAR_REQUIRED_EXTRA={djinns=80}
+local RAGNAR_MOBILE_EXTRA=50
+
 function ragnarRequired(key)
   local task=key and TASKS[key]
-  return task and math.max(0,(tonumber(task.required) or 0)+(RAGNAR_REQUIRED_EXTRA[key] or 0)) or 0
+  if not task then return 0 end
+
+  local required=tonumber(task.required) or 0
+  required=required+(RAGNAR_REQUIRED_EXTRA[key] or 0)
+
+  -- No mobile todas as tasks recebem mais 50 mortes de seguranca.
+  if ragnarIsMobile() then
+    required=required+RAGNAR_MOBILE_EXTRA
+  end
+
+  return math.max(0,required)
 end
 
 ragnarButton = setupUI([[
@@ -16774,6 +16799,7 @@ local function smart(s)
   s=norm(s):gsub("^the%s+",""):gsub("[^%w%s]","")
   return s:sub(-1)=="s" and s:sub(1,-2) or s
 end
+
 local function parseHunt(text)
   local hunt=tostring(text or ""):match("[Yy]our hunt for%s+(.+)%s+has begun")
   if not hunt then return end
@@ -16821,9 +16847,21 @@ local function refreshTracker()
     return
   end
 
-  cfg.required=ragnarRequired(cfg.current)
   cfg.progress[cfg.current]=type(cfg.progress[cfg.current])=="table" and cfg.progress[cfg.current] or {kills=cfg.kills}
-  cfg.kills=math.min(cfg.required,math.max(0,tonumber(cfg.progress[cfg.current].kills) or 0))
+
+  -- Quando o Quest Tracker ja informou o andamento, ele vira a
+  -- fonte da contagem exibida no painel Task Ragnar.
+  -- No mobile ignora totalmente qualquer valor salvo pelo Quest Tracker
+  -- e mantem somente a contagem local por loot/morte/dano.
+  local questProgress=not ragnarIsMobile() and cfg.questTrackerProgress[cfg.current] or nil
+  if type(questProgress)=="table" and (tonumber(questProgress.required) or 0)>0 then
+    cfg.required=math.max(0,tonumber(questProgress.required) or 0)
+    cfg.kills=math.min(cfg.required,math.max(0,tonumber(questProgress.kills) or 0))
+  else
+    cfg.required=ragnarRequired(cfg.current)
+    cfg.kills=math.min(cfg.required,math.max(0,tonumber(cfg.progress[cfg.current].kills) or 0))
+  end
+
   cfg.progress[cfg.current].kills=cfg.kills
 
   taskInterface.title:setText("Task Ragnar (Nivel "..t.level..")")
@@ -16863,7 +16901,10 @@ local pendingReportKey,pendingReportStarted=nil,0
 local function taskCancelada(text) return norm(text):find(CANCEL_MSG,1,true)~=nil end
 function ragnarClearTask()
   local key=cfg.current
-  if key then cfg.progress[key]=nil end
+  if key then
+    cfg.progress[key]=nil
+    cfg.questTrackerProgress[key]=nil
+  end
   pendingReportKey,pendingReportStarted=nil,0
   cfg.current,cfg.kills,cfg.required=nil,0,0
   KS.seen,KS.counted,KS.death,KS.loot,KS.pending={},{},{},{},{}
@@ -17116,8 +17157,12 @@ end
 
 local function tooltip(t)
   local required=ragnarRequired(t.key)
-  local extra=RAGNAR_REQUIRED_EXTRA[t.key] or 0
-  return "Required: "..required..(extra>0 and " ("..t.required.." + "..extra.." safety)" or "")..
+  local specificExtra=RAGNAR_REQUIRED_EXTRA[t.key] or 0
+  local mobileExtra=ragnarIsMobile() and RAGNAR_MOBILE_EXTRA or 0
+  local totalExtra=specificExtra+mobileExtra
+
+  return "Required: "..required..
+         (totalExtra>0 and " ("..t.required.." + "..totalExtra.." safety)" or "")..
          "\nCreatures: "..(#t.creatures>0 and table.concat(t.creatures,", ") or "N/A")
 end
 
@@ -17189,6 +17234,425 @@ function ragnarActiveTask()
   return key and TASKS[key] and TASKS[key].level==cfg.level and cfg.completed[key]~=true and key or nil
 end
 function ragnarHasTask() return ragnarActiveTask()~=nil end
+
+
+-- =========================================================
+-- HUNTING TASKS -> QUEST TRACKER AUTOMATICO
+-- Usa TASKS[cfg.current].label e somente roda quando
+-- o botao principal Task Ragnar estiver ligado.
+-- Nao usa connect, disconnect ou g_clock.
+-- =========================================================
+local ragnarQuestTrackerState={
+  key=nil,
+  phase="idle",
+  questId=nil,
+  trackData=nil,
+  lastAction=0,
+  waitUntil=0,
+  lastError=0
+}
+
+local function rqtNormalize(text)
+  return tostring(text or "")
+    :lower()
+    :gsub("’","'")
+    :gsub("%(completed%)","")
+    :gsub("[^%w]+"," ")
+    :gsub("^%s+","")
+    :gsub("%s+$","")
+    :gsub("%s+"," ")
+end
+
+local function rqtMissionName(text)
+  text=tostring(text or ""):gsub("%s*%([Cc]ompleted%)%s*$","")
+  return rqtNormalize(text:match(":%s*(.+)$") or text)
+end
+
+local function rqtChildren(widget)
+  if not widget or not widget.getChildren then return {} end
+  return widget:getChildren() or {}
+end
+
+local function rqtCurrentTask()
+  if not rb.enabled then return nil,nil end
+
+  local key=cfg.current
+  local task=key and TASKS[key]
+
+  if not task or task.level~=cfg.level or cfg.completed[key]==true then
+    return nil,nil
+  end
+
+  return key,task
+end
+
+local function rqtTrackerText(widget)
+  if not widget then return "" end
+
+  if widget.description and widget.description.getText then
+    return widget.description:getText() or ""
+  end
+
+  if widget.getText then
+    return widget:getText() or ""
+  end
+
+  return ""
+end
+
+local function rqtParseProgress(description)
+  local kills,required=tostring(description or ""):match(
+    "([%d%.,]+)%s*/%s*([%d%.,]+)"
+  )
+
+  if not kills or not required then return nil,nil end
+
+  local killsDigits=kills:gsub("[^%d]","")
+  local requiredDigits=required:gsub("[^%d]","")
+
+  kills=tonumber(killsDigits)
+  required=tonumber(requiredDigits)
+
+  if not kills or not required or required<=0 then return nil,nil end
+  return math.max(0,kills),math.max(0,required)
+end
+
+local function rqtSyncTaskPanel(widget,key)
+  local description=rqtTrackerText(widget)
+  local kills,required=rqtParseProgress(description)
+  if not kills or not required then return end
+
+  local previous=cfg.questTrackerProgress[key]
+  local changed=type(previous)~="table"
+    or tonumber(previous.kills)~=kills
+    or tonumber(previous.required)~=required
+
+  cfg.questTrackerProgress[key]={
+    kills=kills,
+    required=required,
+    description=description
+  }
+
+  cfg.progress[key]=type(cfg.progress[key])=="table" and cfg.progress[key] or {}
+  cfg.progress[key].kills=kills
+  cfg.kills=kills
+  cfg.required=required
+
+  if changed then refreshTracker() end
+end
+
+local function rqtTrackerMatches(description,task)
+  local text=" "..rqtNormalize(description).." "
+  local label=" "..rqtNormalize(task and task.label).." "
+
+  if label=="  " or not text:find(label,1,true) then
+    return false
+  end
+
+  -- Ajuda a diferenciar nomes parecidos, por exemplo:
+  -- Cults / Minotaur Cults / Orc Cults.
+  local _,required=tostring(description or ""):match(
+    "([%d%.,]+)%s*/%s*([%d%.,]+)"
+  )
+
+  if required then
+    local requiredDigits=required:gsub("[^%d]","")
+    required=tonumber(requiredDigits)
+    if required and tonumber(task.required) and required~=tonumber(task.required) then
+      return false
+    end
+  end
+
+  return true
+end
+
+local function rqtGetTrackerList(questModule)
+  local window=questModule and questModule.trackerWindow
+  local panel=window and window.contentsPanel
+  return panel and panel.list or nil
+end
+
+local function rqtFindTaskInTracker(questModule,task)
+  local trackerList=rqtGetTrackerList(questModule)
+  if not trackerList then return nil end
+
+  local trackData=ragnarQuestTrackerState.trackData
+  if trackData and trackerList.getChildById then
+    local widget=trackerList:getChildById(trackData)
+    if widget and widget:isVisible() then return widget end
+  end
+
+  for _,widget in pairs(rqtChildren(trackerList)) do
+    if widget:isVisible() and rqtTrackerMatches(rqtTrackerText(widget),task) then
+      return widget
+    end
+  end
+
+  return nil
+end
+
+local function rqtFindHuntingTasks(questModule)
+  local questWindow=questModule.window
+  local questList=questWindow.questlog.questList
+
+  for _,widget in pairs(rqtChildren(questList)) do
+    local name=widget.questName
+    if not name and widget.getText then name=widget:getText() end
+
+    if rqtNormalize(name)=="hunting tasks" then
+      return widget
+    end
+  end
+
+  return nil
+end
+
+local function rqtFindMission(questModule,task)
+  local missionList=questModule.window.missionlog.missionList
+  local wanted=rqtNormalize(task.label)
+
+  for _,widget in pairs(rqtChildren(missionList)) do
+    local name=widget.getText and widget:getText() or ""
+
+    -- Compara exatamente apos remover o prefixo, por exemplo:
+    -- "Adventurer: Feyrist Surface" -> "Feyrist Surface".
+    if widget:isVisible() and rqtMissionName(name)==wanted then
+      return widget
+    end
+  end
+
+  return nil
+end
+
+local function rqtReset(key)
+  local state=ragnarQuestTrackerState
+  state.key=key
+  state.phase=key and "requestQuestLog" or "idle"
+  state.questId=nil
+  state.trackData=nil
+  state.lastAction=0
+  state.waitUntil=0
+end
+
+local function rqtRun()
+  -- O cliente mobile nao possui Quest Log/Quest Tracker.
+  -- Nao solicita quest log, nao procura Hunting Tasks e nao abre janelas.
+  -- A contagem continua normalmente pelo sistema local da script.
+  if ragnarIsMobile() then
+    local state=ragnarQuestTrackerState
+    if state.key or state.phase~="idle" then rqtReset(nil) end
+    return
+  end
+
+  if not g_game.isOnline() then return end
+
+  local key,task=rqtCurrentTask()
+  local state=ragnarQuestTrackerState
+
+  if not key then
+    if state.key or state.phase~="idle" then rqtReset(nil) end
+    return
+  end
+
+  if state.key~=key then
+    rqtReset(key)
+    print("[Ragnar Tracker] Task ativa: "..tostring(task.label))
+  end
+
+  local questModule=modules and modules.game_questlog
+  if not questModule or not questModule.window or not questModule.trackerWindow then
+    return
+  end
+
+  local questWindow=questModule.window
+  local trackerWindow=questModule.trackerWindow
+  local currentTime=tonumber(now) or 0
+
+  -- A task atual ja esta no tracker: sincroniza o painel Ragnar
+  -- com a contagem oficial exibida pelo Quest Tracker.
+  local trackedWidget=rqtFindTaskInTracker(questModule,task)
+  if trackedWidget then
+    rqtSyncTaskPanel(trackedWidget,key)
+
+    if not trackerWindow:isVisible() then
+      trackerWindow:show()
+      trackerWindow:raise()
+    end
+
+    if questWindow:isVisible() then questWindow:hide() end
+
+    if state.phase~="done" then
+      print("[Ragnar Tracker] Mostrando no Quest Tracker: "..tostring(task.label))
+    end
+
+    state.phase="done"
+    return
+  end
+
+  -- Foi removida do tracker ou a task ativa mudou.
+  if state.phase=="done" then
+    state.phase="requestQuestLog"
+    state.lastAction=0
+  end
+
+  -- 1. Abre o Quest Log.
+  if state.phase=="requestQuestLog" then
+    if questWindow:isVisible() and questWindow.questlog:isVisible() then
+      state.phase="findHuntingTasks"
+      return
+    end
+
+    if currentTime-state.lastAction>=1000 then
+      state.lastAction=currentTime
+      g_game.requestQuestLog()
+    end
+
+    return
+  end
+
+  -- 2. Seleciona Hunting Tasks.
+  if state.phase=="findHuntingTasks" then
+    if not questWindow:isVisible() or not questWindow.questlog:isVisible() then
+      state.phase="requestQuestLog"
+      return
+    end
+
+    local huntingTasks=rqtFindHuntingTasks(questModule)
+
+    if not huntingTasks then
+      if currentTime-state.lastAction>=2000 then
+        state.phase="requestQuestLog"
+        state.lastAction=0
+      end
+      return
+    end
+
+    questWindow.questlog.questList:focusChild(huntingTasks)
+    state.questId=huntingTasks.questId
+    state.lastAction=currentTime
+    state.phase="findMission"
+
+    if type(questModule.showQuestLine)=="function" then
+      questModule.showQuestLine()
+    else
+      state.phase="requestQuestLog"
+    end
+
+    return
+  end
+
+  -- 3. Procura a LABEL da task ativa dentro de Hunting Tasks.
+  if state.phase=="findMission" then
+    local missionLog=questWindow.missionlog
+
+    if not questWindow:isVisible() or not missionLog:isVisible() then
+      if currentTime-state.lastAction>=3000 then
+        state.phase="requestQuestLog"
+        state.lastAction=0
+      end
+      return
+    end
+
+    local mission=rqtFindMission(questModule,task)
+
+    if not mission then
+      if currentTime-state.lastAction>=3000 then
+        warn("[Ragnar Tracker] Task nao encontrada em Hunting Tasks: "..tostring(task.label))
+        state.phase="requestQuestLog"
+        state.lastAction=currentTime
+      end
+      return
+    end
+
+    missionLog.missionList:focusChild(mission)
+    state.trackData=mission.trackData or (mission.getId and mission:getId())
+    state.phase="enableTracker"
+    state.waitUntil=currentTime+300
+    return
+  end
+
+  -- 4. Marca Show in quest tracker.
+  if state.phase=="enableTracker" then
+    if currentTime<state.waitUntil then return end
+
+    local missionLog=questWindow.missionlog
+    if not questWindow:isVisible() or not missionLog:isVisible() then
+      state.phase="requestQuestLog"
+      return
+    end
+
+    local missionList=missionLog.missionList
+    local focused=missionList:getFocusedChild()
+
+    if not focused or (state.trackData and focused.trackData~=state.trackData) then
+      local missionWidget=nil
+      if state.trackData and missionList.getChildById then
+        missionWidget=missionList:getChildById(state.trackData)
+      end
+
+      if missionWidget then
+        missionList:focusChild(missionWidget)
+        state.waitUntil=currentTime+300
+      else
+        state.phase="findMission"
+        state.lastAction=currentTime
+      end
+      return
+    end
+
+    local checkbox=missionLog.track
+    if not checkbox or not checkbox:isEnabled() then return end
+
+    local trackerList=rqtGetTrackerList(questModule)
+    local trackerWidget=nil
+
+    if trackerList and state.trackData and trackerList.getChildById then
+      trackerWidget=trackerList:getChildById(state.trackData)
+    end
+
+    if not trackerWidget or not trackerWidget:isVisible() then
+      checkbox:setChecked(false)
+      questModule.onTrackOptionChange(checkbox)
+    end
+
+    questWindow:hide()
+    trackerWindow:show()
+    trackerWindow:raise()
+
+    state.phase="verify"
+    state.waitUntil=currentTime+500
+    return
+  end
+
+  -- 5. Confirma que a LABEL atual esta aparecendo no tracker.
+  if state.phase=="verify" then
+    if currentTime<state.waitUntil then return end
+
+    if rqtFindTaskInTracker(questModule,task) then
+      state.phase="done"
+      print("[Ragnar Tracker] Adicionada com sucesso: "..tostring(task.label))
+      return
+    end
+
+    state.phase="requestQuestLog"
+    state.lastAction=currentTime
+  end
+end
+
+-- Macro sem nome: nao cria um segundo botao no painel.
+-- Ela somente executa quando rb.enabled estiver ativo.
+macro(200,function()
+  local ok,err=pcall(rqtRun)
+  if ok then return end
+
+  local state=ragnarQuestTrackerState
+  local currentTime=tonumber(now) or 0
+
+  if currentTime-state.lastError>=3000 then
+    state.lastError=currentTime
+    warn("[Ragnar Tracker] Erro: "..tostring(err))
+  end
+end)
 local function ragnarTaskComplete(key)
   local task=key and TASKS[key]
   if not task then return false,0,0 end
@@ -17301,7 +17765,7 @@ end)
 function ragnarRandomTask()
   if npcBusy or ragnarActiveTask() then return false end
   local list=ragnarAvailableTasks()
-  if #list==0 then CaveBot.gotoLabel("Trainer"); return nil end
+  if #list==0 then return nil end
   local key=list[math.random(#list)]
   if not startNpcSequence({"hi","task",TASKS[key].label,"yes"}) then return false end
   return key,TASKS[key]
