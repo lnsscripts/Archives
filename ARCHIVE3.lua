@@ -16345,7 +16345,6 @@ local TASKS = {
   nightmares = { label="Nightmares", required=2000, iconId=33, creatures={ "Nightmare", "Nightmare Scion" } },
   drakens = { label="Drakens", required=3000, iconId=673, creatures={ "Draken Abomination", "Draken Elite", "Draken Spellweaver", "Draken Warmaster", "Lizard Legionnaire", "Lizard Magistratus", "Lizard Noble", "Lizard Chosen", "Lizard Dragon Priest", "Lizard High Guard" } },
   the_hive = { label="The Hive", required=3000, iconId=785, creatures={ "Waspoid", "Crawler", "Spitter", "Kollos", "Spidris", "Spidris Elite", "Hive Overseer" } },
-  iksupan = { label="Iksupan", required=5000, iconId=2437, creatures={ "Iks Yapunac", "Mitmah Scout", "Mitmah Seer" } },
   carnivors = { label="Carnivors", required=4000, iconId=1723, creatures={ "Lumbering Carnivor", "Spiky Carnivor", "Menacing Carnivor" } },
   nightmare_isles = { label="Nightmare Isles", required=3000, iconId=1017, creatures={ "Choking Fear", "Retching Horror", "Silencer" } },
   warlock = { label="Warlock", required=2000, iconId=10, creatures={ "Warlock" } },
@@ -16423,7 +16422,7 @@ local TASKS_BY_LEVEL = {
     "oramond","wyrms","book_world","cults","barkless","feyrist_surface","deeplings",
     "wereboars","minotaur_cults","orc_cults","feyrist_nightmares","bandits","exotics","pirats",
     "werehyaenas","dragon_lords","frost_dragons","banuta_deeper","nightmares","drakens","the_hive",
-    "iksupan","carnivors","nightmare_isles","warlock"
+    "carnivors","nightmare_isles","warlock"
   },
   [3]={
     "mota","grim_reapers","candia","lycanthropes","the_void","asuras","buried_cathedral",
