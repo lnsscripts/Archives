@@ -16297,6 +16297,7 @@ saveIcons()
 end)
 
 lnsRunBlock("Task_Ragnar", function()
+
 local TASKS = {
   goblins = { label="Goblins", required=100, iconId=61, creatures={ "Goblin", "Goblin Assassin", "Goblin Leader", "Goblin Scavenger" } },
   trolls = { label="Trolls", required=100, iconId=15, creatures={ "Troll", "Swamp Troll", "Frost Troll", "Island Troll" } },
@@ -17663,11 +17664,14 @@ local function ragnarTaskComplete(key)
 end
 function ragnarGotoTask()
   local active=ragnarActiveTask()
-  local label="pegar_task"
+  local label
 
   if active then
     local complete=ragnarTaskComplete(active)
     label=complete and "reportTask" or active
+  else
+    local available=ragnarAvailableTasks()
+    label=#available>0 and "pegar_task" or "Trainer"
   end
 
   CaveBot.gotoLabel(label)
@@ -17832,4 +17836,5 @@ function checkSupplies(labelSemSupply,labelComSupply)
 
   return true
 end
+
 end)
