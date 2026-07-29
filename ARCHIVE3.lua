@@ -12802,6 +12802,8 @@ end)
 --========================================================
 UI.Separator()
 
+do
+
 lnsDoubleUE = lnsDoubleUE or {}
 lnsDoubleUE.panelName = "doubleUEInterface"
 
@@ -12840,15 +12842,41 @@ end
 
 doubleUE = setupUI([[
 Panel
-  height: 130
+  height: 19
+
+  BotSwitch
+    id: ativarDoubleUE
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-right: 45
+    height: 18
+    text-align: center
+    text: Active Double UE
+    color: white
+
+  Button
+    id: edit
+    anchors.top: prev.top
+    anchors.left: prev.right
+    anchors.right: parent.right
+    margin-left: 2
+    height: 18
+    text: Show
+    opacity: 1.00
+    color: white
+]], parent)
+
+doubleUEInterface = setupUI([[
+Panel
+  height: 120
 
   Label
     id: title
     anchors.top: parent.top
     anchors.left: parent.left
+    margin-top: 15
     text-auto-resize: true
-    text-align: center
-    margin-top: 10
     text: Pot Cooldown:
     color: white
     font: verdana-11px-rounded
@@ -12857,13 +12885,12 @@ Panel
     id: potionItem
     anchors.verticalCenter: prev.verticalCenter
     anchors.right: parent.right
-    margin-top: 0
 
   Label
     id: spellLabel
     anchors.top: prev.bottom
-    anchors.left: title.left
-    margin-top: 1
+    anchors.left: parent.left
+    margin-top: 3
     text: Spell:
     text-auto-resize: true
     color: white
@@ -12871,15 +12898,15 @@ Panel
 
   BotTextEdit
     id: spellEdit
-    anchors.left: prev.left
+    anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: prev.bottom
-    margin-top: 3
-    
+    margin-top: 2
+
   Label
     id: hotkeyLabel
     anchors.top: prev.bottom
-    anchors.left: title.left
+    anchors.left: parent.left
     margin-top: 5
     text: Atalho:
     text-auto-resize: true
@@ -12892,31 +12919,47 @@ Panel
     anchors.verticalCenter: prev.verticalCenter
     width: 80
 
-  BotSwitch
-    id: ativarDoubleUE
-    anchors.top: prev.bottom
-    anchors.left: title.left
-    anchors.right: prev.right
-    margin-top: 5
-    text: Active Double UE
-
   CheckBox
     id: ativarAvatar
     anchors.top: prev.bottom
-    anchors.left: prev.left
-    text: Auto Avatar
+    anchors.left: parent.left
     margin-top: 5
     size: 100 20
+    text: Auto Avatar
     text-align: verticalCenter
-
 ]], parent)
 
-lnsDoubleUE.getWidget = function(id)
-  if not doubleUE then return nil end
-  if doubleUE.recursiveGetChildById then
-    return doubleUE:recursiveGetChildById(id)
+doubleUEInterface:hide()
+
+doubleUE.edit.onClick = function()
+  if doubleUEInterface:isVisible() then
+    doubleUEInterface:hide()
+    doubleUE.edit:setText("Show")
+  else
+    doubleUEInterface:show()
+    doubleUE.edit:setText("Hide")
   end
-  return doubleUE[id]
+end
+
+lnsDoubleUE.getWidget = function(id)
+  local widget = nil
+
+  if doubleUE then
+    if doubleUE.recursiveGetChildById then
+      widget = doubleUE:recursiveGetChildById(id)
+    else
+      widget = doubleUE[id]
+    end
+  end
+
+  if widget then return widget end
+  if not doubleUEInterface then return nil end
+
+  if doubleUEInterface.recursiveGetChildById then
+    return doubleUEInterface:recursiveGetChildById(id)
+  end
+
+  return doubleUEInterface[id]
 end
 
 lnsDoubleUE.bindSwitch = function(id)
@@ -13251,7 +13294,309 @@ macro(20, function()
   lnsDoubleUE.execute()
 end)
 
+end
 
+--========================================================
+-- FOODS HP/MP
+--========================================================
+
+do
+
+local foodStorageName = "foodRecovery"
+
+warStorage[foodStorageName] = warStorage[foodStorageName] or {
+  hp = {
+    enabled = false,
+    item = 28485,
+    percent = 15
+  },
+
+  mana = {
+    enabled = false,
+    item = 28484,
+    percent = 15
+  }
+}
+
+local foodCfg = warStorage[foodStorageName]
+
+foodCfg.hp = foodCfg.hp or {}
+foodCfg.hp.enabled = foodCfg.hp.enabled == true
+foodCfg.hp.item = tonumber(foodCfg.hp.item) or 28485
+foodCfg.hp.percent = tonumber(foodCfg.hp.percent) or 15
+
+foodCfg.mana = foodCfg.mana or {}
+foodCfg.mana.enabled = foodCfg.mana.enabled == true
+foodCfg.mana.item = tonumber(foodCfg.mana.item) or 28484
+foodCfg.mana.percent = tonumber(foodCfg.mana.percent) or 15
+
+local function saveFoodStorage()
+  if type(saveThisWarStorage) == "function" then
+    saveThisWarStorage()
+  elseif type(saveWarGlobal) == "function" then
+    saveWarGlobal()
+  end
+end
+
+local function getFoodItemId(widget)
+  if not widget then return 0 end
+
+  if widget.getItemId then
+    local itemId = tonumber(widget:getItemId()) or 0
+
+    if itemId > 0 then
+      return itemId
+    end
+  end
+
+  if widget.getItem then
+    local item = widget:getItem()
+
+    if item and item.getId then
+      return tonumber(item:getId()) or 0
+    end
+  end
+
+  return 0
+end
+
+foodhpPanel = setupUI([[
+Panel
+  height: 35
+  margin-top: 5
+
+  BotItem
+    id: item
+    anchors.top: parent.top
+    anchors.left: parent.left
+    margin-left: 2
+    margin-top: 2
+    image-color: pink
+    border: 1 pink
+
+  BotSwitch
+    id: title
+    anchors.top: parent.top
+    anchors.left: item.right
+    anchors.right: parent.right
+    anchors.bottom: item.verticalCenter
+    text-align: center
+    text: Food HP
+    margin-left: 5
+    width: 123
+
+  HorizontalScrollBar
+    id: HPPercent
+    anchors.top: parent.top
+    anchors.left: item.right
+    anchors.right: parent.right
+    margin-left: 6
+    margin-top: 23
+    width: 120
+    minimum: 1
+    maximum: 100
+    step: 1
+
+  BotLabel
+    id: help
+    anchors.top: HPPercent.top
+    anchors.bottom: HPPercent.bottom
+    anchors.left: HPPercent.left
+    anchors.right: HPPercent.right
+    text-align: center
+    color: white
+    phantom: true
+
+]], parent)
+
+foodmpPanel = setupUI([[
+Panel
+  height: 35
+  margin-top: 5
+
+  BotItem
+    id: item
+    anchors.top: parent.top
+    anchors.left: parent.left
+    margin-left: 2
+    margin-top: 2
+    image-color: blue
+    border: 1 blue
+
+  BotSwitch
+    id: title
+    anchors.top: parent.top
+    anchors.left: item.right
+    anchors.right: parent.right
+    anchors.bottom: item.verticalCenter
+    text-align: center
+    text: Food Mana
+    margin-left: 5
+    width: 123
+
+  HorizontalScrollBar
+    id: manaPercent
+    anchors.top: parent.top
+    anchors.left: item.right
+    anchors.right: parent.right
+    margin-left: 6
+    margin-top: 23
+    width: 120
+    minimum: 1
+    maximum: 100
+    step: 1
+
+  BotLabel
+    id: help
+    anchors.top: manaPercent.top
+    anchors.bottom: manaPercent.bottom
+    anchors.left: manaPercent.left
+    anchors.right: manaPercent.right
+    text-align: center
+    color: white
+    phantom: true
+
+]], parent)
+
+local function bindFoodPanel(panel, config, scrollbarId, text)
+  local scrollbar = panel:recursiveGetChildById(scrollbarId)
+
+  local function updateLabel()
+    panel.help:setText(text .. ": " .. config.percent .. "%")
+  end
+
+  panel.item:setItemId(config.item)
+  panel.title:setOn(config.enabled)
+  scrollbar:setValue(config.percent)
+  updateLabel()
+
+  panel.title.onClick = function(widget)
+    config.enabled = not widget:isOn()
+    widget:setOn(config.enabled)
+    saveFoodStorage()
+  end
+
+  scrollbar.onValueChange = function(widget, value)
+    config.percent = tonumber(value) or 15
+    updateLabel()
+    saveFoodStorage()
+  end
+
+  local function saveItem(widget, itemId)
+    itemId = tonumber(itemId) or getFoodItemId(widget)
+
+    if itemId <= 0 or itemId == config.item then
+      return
+    end
+
+    config.item = itemId
+    saveFoodStorage()
+  end
+
+  panel.item.onItemChange = function(widget)
+    saveItem(widget)
+  end
+
+  panel.item.onItemIdChange = function(widget, itemId)
+    saveItem(widget, itemId)
+  end
+end
+
+bindFoodPanel(foodhpPanel, foodCfg.hp, "HPPercent", "HP")
+bindFoodPanel(foodmpPanel, foodCfg.mana, "manaPercent", "Mana")
+
+-- COOLDOWN DAS FOODS
+local FOOD_COOLDOWN = 10 * 60 -- 10 minutos em segundos
+
+foodCfg.hp.nextUse = tonumber(foodCfg.hp.nextUse) or 0
+foodCfg.mana.nextUse = tonumber(foodCfg.mana.nextUse) or 0
+
+foodRecoveryState = foodRecoveryState or {
+  nextAction = 0
+}
+
+foodRecoveryState.nextAction =
+  tonumber(foodRecoveryState.nextAction) or 0
+
+local function setFoodCooldown(foodType)
+  local config = foodCfg[foodType]
+  if not config then return end
+
+  config.nextUse = os.time() + FOOD_COOLDOWN
+  saveFoodStorage()
+end
+
+-- Atualiza a função corretamente ao recarregar a script
+foodRecoveryHandleMessage = function(mode, text)
+  text = tostring(text or "")
+
+  if text:find("You were healed completely.", 1, true) then
+    setFoodCooldown("hp")
+    return
+  end
+
+  if text:find("Your mana was refilled completely.", 1, true) then
+    setFoodCooldown("mana")
+  end
+end
+
+-- Registra o listener apenas uma vez
+if not foodRecoveryMessageListener then
+  foodRecoveryMessageListener = onTextMessage(function(mode, text)
+    if type(foodRecoveryHandleMessage) == "function" then
+      foodRecoveryHandleMessage(mode, text)
+    end
+  end)
+end
+
+local function tryUseFood(foodType, currentPercent)
+  local config = foodCfg[foodType]
+
+  if not config or config.enabled ~= true then
+    return false
+  end
+
+  local configuredPercent = tonumber(config.percent) or 15
+
+  if currentPercent > configuredPercent then
+    return false
+  end
+
+  -- Verifica o cooldown de 10 minutos
+  if os.time() < (tonumber(config.nextUse) or 0) then
+    return false
+  end
+
+  local itemId = tonumber(config.item) or 0
+  if itemId <= 0 then
+    return false
+  end
+
+  local foodItem = findItem(itemId)
+  if not foodItem then
+    return false
+  end
+
+  g_game.use(foodItem)
+  return true
+end
+
+macro(100, function()
+  if not g_game.isOnline() then return end
+  if now < foodRecoveryState.nextAction then return end
+
+  -- Food de HP tem prioridade
+  if tryUseFood("hp", hppercent()) then
+    foodRecoveryState.nextAction = now + 500
+    return
+  end
+
+  if tryUseFood("mana", manapercent()) then
+    foodRecoveryState.nextAction = now + 500
+  end
+end)
+
+end
 --========================================================
 -- EXIVAS
 --========================================================
@@ -13587,6 +13932,7 @@ if g_keyboard and g_keyboard.bindKeyDown then
     clearAnimation()
   end)
 end
+  
 end)
 
 lnsRunBlock("ICONES", function()
@@ -14832,6 +15178,34 @@ end
 -- AUTO_ICONS
 --==================================================
 
+local function getFoodRecoveryConfig(foodType)
+  warStorage = warStorage or {}
+  warStorage.foodRecovery = warStorage.foodRecovery or {}
+
+  local defaultItem = foodType == "hp" and 28485 or 28484
+
+  warStorage.foodRecovery[foodType] = warStorage.foodRecovery[foodType] or {
+    enabled = false,
+    item = defaultItem,
+    percent = 15
+  }
+
+  local config = warStorage.foodRecovery[foodType]
+  config.enabled = config.enabled == true
+  config.item = tonumber(config.item) or defaultItem
+  config.percent = tonumber(config.percent) or 15
+
+  return config
+end
+
+local function saveFoodRecoveryIcon()
+  if type(saveThisWarStorage) == "function" then
+    saveThisWarStorage()
+  elseif type(saveWarGlobal) == "function" then
+    saveWarGlobal()
+  end
+end
+
 local AUTO_ICONS = {
   {
     key = "attackbot",
@@ -15239,6 +15613,49 @@ local AUTO_ICONS = {
     save = function() if type(saveEatFood) == "function" then saveEatFood() end end
   },
 
+
+  {
+    key = "food_hp",
+    itemId = 28485,
+    text = "FOOD HP",
+    show = false,
+
+    read = function()
+      return getFoodRecoveryConfig("hp").enabled == true
+    end,
+
+    write = function(state)
+      getFoodRecoveryConfig("hp").enabled = state == true
+    end,
+
+    getButton = function()
+      return foodhpPanel and foodhpPanel.title
+    end,
+
+    save = saveFoodRecoveryIcon
+  },
+
+  {
+    key = "food_mp",
+    itemId = 28484,
+    text = "FOOD MP",
+    show = false,
+
+    read = function()
+      return getFoodRecoveryConfig("mana").enabled == true
+    end,
+
+    write = function(state)
+      getFoodRecoveryConfig("mana").enabled = state == true
+    end,
+
+    getButton = function()
+      return foodmpPanel and foodmpPanel.title
+    end,
+
+    save = saveFoodRecoveryIcon
+  },
+
   {
     key = "stamina",
     itemId = 11372,
@@ -15490,11 +15907,11 @@ local AUTO_ICONS = {
     itemId = 52662,
     text = "CHASE",
     show = false,
-  
+
     read = function()
       return g_game.getChaseMode() == 1
     end,
-  
+
     write = function(state)
       g_game.setChaseMode(state and 1 or 0)
     end
@@ -16280,7 +16697,7 @@ iconesInterface.pesquisaIcons.onTextChange = function(_, text)
   end
 end
 
-macro(200, function()
+macro(20, function()
   if not boundStates["chase_mode"] then return end
 
   if g_game.getChaseMode() ~= 1 then
@@ -16294,6 +16711,7 @@ end)
 
 updateAllIcons()
 saveIcons()
+ 
 end)
 
 lnsRunBlock("Task_Ragnar", function()
