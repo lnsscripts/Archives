@@ -16753,7 +16753,7 @@ local TASKS = {
   minotaur_cults = { label="Minotaur Cults", required=1800, iconId=1508, creatures={ "Minotaur Cult Follower", "Minotaur Cult Prophet", "Minotaur Cult Zealot" } },
   orc_cults = { label="Orc Cults", required=2000, iconId=2438, creatures={ "Orc Cult Fanatic", "Orc Cult Inquisitor", "Orc Cult Minion", "Orc Cult Priest", "Orc Cultist" } },
   feyrist_nightmares = { label="Feyrist Nightmares", required=2000, iconId=1442, creatures={ "Weakened Frazzlemaw", "Enfeebled Silencer" } },
-  bandits = { label="Bandits", required=3000, iconId=1119, creatures={ "Glooth Bandit", "Glooth Brigand" } },
+  bandits = { label="Glooth Bandits", required=3000, iconId=1119, creatures={ "Glooth Bandit", "Glooth Brigand" } },
   exotics = { label="Exotics", required=3500, iconId=2024, creatures={ "Exotic Cave Spider", "Exotic Bat" } },
   pirats = { label="Pirats", required=2000, iconId=2038, creatures={ "Pirat Bombardier", "Pirat Cutthroat", "Pirat Mate", "Pirat Scoundrel" } },
   werehyaenas = { label="Werehyaenas", required=2000, iconId=1963, creatures={ "Werehyaena", "Werehyaena Shaman" } },
