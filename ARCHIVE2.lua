@@ -6884,6 +6884,9 @@ local SCROLL_ID_TO_DISPLAY_NAME = {
   [51454] = "Protect Death",
   [51447] = "Protect Energy",
   [51446] = "Axe",
+  [51460] = "Sword",
+  [51452] = "Capacity",
+  [51463] = "Speed Bonus",
   [51451] = "Magic Level"
 }
 
@@ -6905,6 +6908,9 @@ local SCROLL_ID_TO_CONFIG_NAME = {
   [51454] = "Elemental Protection (Death)",
   [51447] = "Elemental Protection (Energy)",
   [51446] = "Skill Bonus (Axe)",
+  [51460] = "Skill Bonus (Sword)",
+  [51452] = "Capacity",
+  [51463] = "Speed Bonus",
   [51451] = "Magic Level"
 }
 
@@ -7695,6 +7701,9 @@ local SCROLL_RESULT_IDS = {
   ["Elemental Protection (Death)"] = 41454,
   ["Elemental Protection (Energy)"] = 51447,
   ["Skill Bonus (Axe)"] = 51446,
+  ["Skill Bonus (Sword)"] = 51460,
+  ["Capacity"] = 51452,
+  ["Speed Bonus"] = 51463,
   ["Magic Level"] = 51451
 }
 
