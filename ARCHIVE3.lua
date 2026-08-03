@@ -16765,7 +16765,7 @@ local TASKS = {
   the_hive = { label="The Hive", required=3000, iconId=785, creatures={ "Waspoid", "Crawler", "Spitter", "Kollos", "Spidris", "Spidris Elite", "Hive Overseer" } },
   carnivors = { label="Carnivors", required=4000, iconId=1723, creatures={ "Lumbering Carnivor", "Spiky Carnivor", "Menacing Carnivor" } },
   nightmare_isles = { label="Nightmare Isles", required=3000, iconId=1017, creatures={ "Choking Fear", "Retching Horror", "Silencer" } },
-  warlock = { label="Warlock", required=2000, iconId=10, creatures={ "Warlock" } },
+  warlock = { label="Warlocks", required=2000, iconId=10, creatures={ "Warlock" } },
   mota = { label="Mota", required=3000, iconId=291, creatures={ "Fury", "Floating Savant", "Demon", "Retching Horror", "Hellhound" } },
   grim_reapers = { label="Grim Reapers", required=3000, iconId=519, creatures={ "Hellspawn", "Grim Reaper" } },
   candia = { label="Candia", required=3500, iconId=2535, creatures={ "Candy Horror", "Nibblemaw", "Honey Elemental", "Angry Sugar Fairy", "Candy Floss Elemental", "Goggle Cake" } },
