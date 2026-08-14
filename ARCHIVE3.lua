@@ -18536,7 +18536,7 @@ local RUNES = {
         "Orc Cult Fanatic",
         "Orc Cult Inquisitor",
         "Orc Cult Minion",
-        "Orc Cult Pries",
+        "Orc Cult Priest",
         "Orc Cultist",
         "Pirat Scoundrel",
         "Pirat Cutthroat",
