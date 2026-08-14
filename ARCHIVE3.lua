@@ -16760,6 +16760,7 @@ end)
 lnsRunBlock("Task_Ragnar", function()
 
 local TASKS = {
+  
   goblins = { label="Goblins", required=100, iconId=61, creatures={ "Goblin", "Goblin Assassin", "Goblin Leader", "Goblin Scavenger" } },
   trolls = { label="Trolls", required=100, iconId=15, creatures={ "Troll", "Swamp Troll", "Frost Troll", "Island Troll" } },
   orcs = { label="Orcs", required=250, iconId=5, creatures={ "Orc", "Orc Spearman", "Orc Warrior", "Orc Shaman", "Orc Rider", "Orc Berserker", "Orc Leader", "Orc Warlord" } },
@@ -18485,6 +18486,267 @@ function checkSupplies(labelSemSupply,labelComSupply)
 
   return true
 end
+
+-------------- RUNAS RAGNAR
+storage.runesForRagnar = storage.runesForRagnar or false
+
+local runesRagnar = setupUI([[
+CheckBox
+  text: RUNES FOR RAGNAR
+  font: cipsoftFont
+  text-offset: 12 2
+  tooltip: Adicione as runas (Ava, GFB, Thunder e S.Shower) no painel do attackbot para a script funcionar.
+  margin-top: 2
+]])
+
+runesRagnar:setChecked(storage.runesForRagnar)
+
+runesRagnar.onClick = function(widget)
+    local state = not widget:isChecked()
+    widget:setChecked(state)
+    storage.runesForRagnar = state
+end
+
+local RUNES = {
+    [3175] = { -- Stone Shower
+        "Goblin",
+        "Goblin Assassin",
+        "Goblin Leader",
+        "Goblin Scavenger",
+        "Frost Troll",
+        "Orc",
+        "Orc Spearman",
+        "Orc Warrior",
+        "Orc Shaman",
+        "Orc Rider",
+        "Orc Berserker",
+        "Orc Leader",
+        "Orc Warlord",
+        "Cyclops",
+        "Cyclops Smith",
+        "Cyclops Drone",
+        "Barbarian Bloodwalker",
+        "Barbarian Brutetamer",
+        "Barbarian Headsplitter",
+        "Barbarian Skullhunter",
+        "Stonerefiner",
+
+        "Barkless Devotee",
+        "Barkless Fanatic",
+        "Orc Cult Fanatic",
+        "Orc Cult Inquisitor",
+        "Orc Cult Minion",
+        "Orc Cult Pries",
+        "Orc Cultist",
+        "Pirat Scoundrel",
+        "Pirat Cutthroat",
+        "Pirat Bombardier",
+        "Warlock"
+    },
+
+    [3202] = { -- Thunderstorm
+        "Minotaur",
+        "Minotaur Archer",
+        "Minotaur Guard",
+        "Minotaur Mage",
+        "Quara Mantassin",
+        "Quara Mantassin Scout",
+        "Quara Constrictor",
+        "Quara Constrictor Scout",
+        "Quara Pincher",
+        "Quara Pincher Scout",
+        "Quara Predator",
+        "Quara Predator Scout",
+        "Quara Hydromancer",
+        "Quara Hydromancer Scout",
+
+        "Bluebeak",
+        "Bramble Wyrmling",
+        "Crusader",
+        "Hawk Hopper",
+        "Headwalker",
+        "Lion Hydra",
+        "Faun",
+        "Dark Faun",
+        "Nymph",
+        "Pooka",
+        "Twisted Pooka",
+        "Deepling Spellsinger",
+        "Deepling Scout",
+        "Deepling Warrior",
+        "Deepling Guard",
+        "Frost Dragon",
+        "Frost Dragon Hatchling",
+        "Medusa",
+        "Serpent Spawn",
+        "Hydra",
+        "Eternal Guardian",
+        "Choking Fear",
+        "Retching Horror",
+        "Silencer"
+    },
+
+    [3191] = { -- GFB
+        "Dwarf",
+        "Dwarf Soldier",
+        "Dwarf Guard",
+        "Dwarf Geomancer",
+        "Dworc Venomsniper",
+        "Dworc Voodoomaster",
+        "Dworc Fleshhunter",
+        "Mummy",
+        "Ghoul",
+        "Scarab",
+        "Mutated Rat",
+        "Mutated Human",
+        "Mutated Bat",
+        "Mutated Tiger",
+        "Corym Charlatan",
+        "Corym Skirmisher",
+        "Corym Vanguard",
+        "Pirate Marauder",
+        "Pirate Cutthroat",
+        "Pirate Corsair",
+        "Pirate Buccaneer",
+        "Necromancer",
+        "Zombie",
+        "Gravedigger",
+        "Blood Hand",
+        "Ancient Scarab",
+        "Giant Spider",
+        "Tortoise",
+        "Toad",
+        "Blood Crab",
+        "Thornback Tortoise",
+
+        "Cult Believer",
+        "Vicious Squire",
+        "Cult Enforcer",
+        "Renegade Knight",
+        "Vile Grandmaster",
+        "Cult Scholar",
+        "Hero",
+        "Swan Maiden",
+        "Werefox",
+        "Werebadger",
+        "Wereboar",
+        "Werebear",
+        "Werewolf",
+        "Glooth Bandit",
+        "Glooth Brigand",
+        "Exotic Cave Spider",
+        "Exotic Bat",
+        "Pirat Mate",
+        "Waspoid",
+        "Crawler",
+        "Lumbering Carnivor",
+        "Spiky Carnivor",
+        "Menacing Carnivor"
+    }
+}
+
+local runeByMonster = {}
+
+for runeId, monsters in pairs(RUNES) do
+    for _, name in ipairs(monsters) do
+        runeByMonster[name:lower()] = runeId
+    end
+end
+
+local controlledRunes = {
+    [3161] = true, -- Avalanche
+    [3175] = true, -- Stone Shower
+    [3202] = true, -- Thunderstorm
+    [3191] = true  -- GFB
+}
+
+local lastRuneId = -1
+local lastProfile = -1
+
+local function getRagnarAttackProfile()
+    local bot = storage.LNSAttackBotGlobal
+    if type(bot) ~= "table" then return nil end
+
+    local profiles = bot.attackBotProfiles
+    if type(profiles) ~= "table" then return nil end
+
+    local index = tonumber(profiles.activeProfile) or 1
+    local profile = profiles.profiles and profiles.profiles[index]
+
+    return profile, index
+end
+
+local function refreshRagnarAttackPanel()
+    if type(rebuildAttackList) == "function" then
+        rebuildAttackList()
+    end
+end
+
+local function setRagnarRune(runeId)
+    local profile, profileIndex = getRagnarAttackProfile()
+    if not profile or type(profile.attacks) ~= "table" then return end
+
+    local changed = false
+
+    for _, attack in ipairs(profile.attacks) do
+        if attack.type == "rune" then
+            local id = tonumber(attack.id)
+
+            if controlledRunes[id] then
+                local state = runeId ~= nil and id == runeId
+
+                if attack.enabled ~= state then
+                    attack.enabled = state
+                    changed = true
+                end
+            end
+        end
+    end
+
+    if changed then
+        storage.LNSAttackBotGlobal = storage.LNSAttackBotGlobal
+        refreshRagnarAttackPanel()
+    end
+
+    lastRuneId = runeId
+    lastProfile = profileIndex
+end
+
+macro(100, function()
+    if not storage.runesForRagnar then
+        lastRuneId = -1
+        lastProfile = -1
+        return
+    end
+
+    local profile, profileIndex = getRagnarAttackProfile()
+    if not profile then return end
+
+    local target = g_game.getAttackingCreature()
+
+    -- Sem target = desliga as 4 runas
+    if not target or not target.isMonster or not target:isMonster() then
+        if lastRuneId ~= nil or lastProfile ~= profileIndex then
+            setRagnarRune(nil)
+        end
+        return
+    end
+
+    local name = target:getName()
+    if not name or name == "" then
+        if lastRuneId ~= nil or lastProfile ~= profileIndex then
+            setRagnarRune(nil)
+        end
+        return
+    end
+
+    -- Não cadastrado = Avalanche
+    local runeId = runeByMonster[name:lower()] or 3161
+
+    if runeId ~= lastRuneId or profileIndex ~= lastProfile then
+        setRagnarRune(runeId)
+    end
+end)
 
 end)
 
