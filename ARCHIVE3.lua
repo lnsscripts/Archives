@@ -12546,7 +12546,6 @@ end
 local FULL_SLOT_NECK = SlotNeck or 2
 local FULL_SLOT_FINGER = SlotFinger or 9
 local FULL_IS_OLD_CLIENT = g_game.getClientVersion() < 960
-local FULL_ACTION_DELAY = FULL_IS_OLD_CLIENT and 250 or 0
 
 local ui = setupUI([[
 Panel
@@ -12612,8 +12611,14 @@ local function getBotItemId(widget)
 
   if widget.getItem then
     local item = widget:getItem()
-    if type(item) == "number" then return item end
-    if item and item.getId then return tonumber(item:getId()) or 0 end
+
+    if type(item) == "number" then
+      return item
+    end
+
+    if item and item.getId then
+      return tonumber(item:getId()) or 0
+    end
   end
 
   return 0
@@ -12621,6 +12626,7 @@ end
 
 local function setBotItemId(widget, itemId)
   itemId = tonumber(itemId) or 0
+
   if not widget then return end
 
   if widget.setItemId then
@@ -12644,11 +12650,15 @@ end
 
 local function fullFindItemById(id)
   id = tonumber(id) or 0
+
   if id <= 0 then return nil end
 
   if type(findItem) == "function" then
     local item = findItem(id)
-    if item then return item end
+
+    if item then
+      return item
+    end
   end
 
   for _, container in ipairs(fullGetContainers()) do
@@ -12664,14 +12674,17 @@ end
 
 local function fullGetSlotId(slot)
   local item = getSlot(slot)
+
   if item and item.getId then
     return tonumber(item:getId()) or 0
   end
+
   return 0
 end
 
 local function fullEquipToSlot(itemId, slot)
   itemId = tonumber(itemId) or 0
+
   if itemId <= 0 then return false end
 
   if not FULL_IS_OLD_CLIENT then
@@ -12679,7 +12692,9 @@ local function fullEquipToSlot(itemId, slot)
       g_game.equipItemId(itemId)
     end)
 
-    if ok then return true end
+    if ok then
+      return true
+    end
 
     ok = pcall(function()
       g_game.equipItemId(itemId)
@@ -12689,10 +12704,17 @@ local function fullEquipToSlot(itemId, slot)
   end
 
   local item = fullFindItemById(itemId)
-  if not item then return false end
+
+  if not item then
+    return false
+  end
 
   local ok = pcall(function()
-    g_game.move(item, {x = 65535, y = slot, z = 0}, 1)
+    g_game.move(item, {
+      x = 65535,
+      y = slot,
+      z = 0
+    }, 1)
   end)
 
   return ok
@@ -12710,8 +12732,9 @@ end
 
 setBotItemId(ui.ringItem, cfg.ringId or 3048)
 setBotItemId(ui.amuletItem, cfg.amuletId or 3081)
+
 ui.enable:setOn(cfg.enabled == true)
-ui.enable:setText(cfg.enabled and "Full Equip" or "Full Equip")
+ui.enable:setText("Full Equip")
 ui.hotkey:setText(cfg.hotkey or "F12")
 
 ui.enable.onClick = function(widget)
@@ -12736,13 +12759,17 @@ end
 
 local function isHotkeyPressed()
   local key = tostring(cfg.hotkey or ""):upper():gsub("%s+", "")
-  if key == "" then return false end
+
+  if key == "" then
+    return false
+  end
 
   if not g_keyboard or not g_keyboard.isKeyPressed then
     return false
   end
 
-  return g_keyboard.isKeyPressed(key) or g_keyboard.isKeyPressed(key:lower())
+  return g_keyboard.isKeyPressed(key)
+      or g_keyboard.isKeyPressed(key:lower())
 end
 
 local lastHotkey = 0
@@ -12754,49 +12781,65 @@ macro(20, function()
   end
 end)
 
-local nextEquipAction = 0
 pauseSwapRing = pauseSwapRing or 0
-local nextEquipAction = 0
 
-macro(20, function()
-  if cfg.enabled ~= true then return end
-  if now < nextEquipAction then return end
+macro(10, function()
+  if cfg.enabled ~= true then
+    return
+  end
 
   local ringId = tonumber(cfg.ringId) or 0
   local amuletId = tonumber(cfg.amuletId) or 0
 
   if not FULL_IS_OLD_CLIENT then
-    if ringId > 0 and fullGetSlotId(FULL_SLOT_FINGER) ~= ringId then
+
+    if ringId > 0
+    and fullGetSlotId(FULL_SLOT_FINGER) ~= ringId then
+
       pcall(function()
-        g_game.equipItemId(ringId, FULL_SLOT_FINGER)
+        g_game.equipItemId(
+          ringId,
+          FULL_SLOT_FINGER
+        )
       end)
     end
 
-    if amuletId > 0 and fullGetSlotId(FULL_SLOT_NECK) ~= amuletId then
+    if amuletId > 0
+    and fullGetSlotId(FULL_SLOT_NECK) ~= amuletId then
+
       pcall(function()
-        g_game.equipItemId(amuletId, FULL_SLOT_NECK)
+        g_game.equipItemId(
+          amuletId,
+          FULL_SLOT_NECK
+        )
       end)
     end
 
     return
   end
 
-  -- old client: precisa mover um por vez para evitar bug/exhaust
-  if ringId > 0 and fullGetSlotId(FULL_SLOT_FINGER) ~= ringId then
-    if fullEquipToSlot(ringId, FULL_SLOT_FINGER) then
-      nextEquipAction = now + FULL_ACTION_DELAY
+  if ringId > 0
+  and fullGetSlotId(FULL_SLOT_FINGER) ~= ringId then
+
+    if fullEquipToSlot(
+      ringId,
+      FULL_SLOT_FINGER
+    ) then
       return
     end
   end
 
-  if amuletId > 0 and fullGetSlotId(FULL_SLOT_NECK) ~= amuletId then
-    if fullEquipToSlot(amuletId, FULL_SLOT_NECK) then
-      nextEquipAction = now + FULL_ACTION_DELAY
+  if amuletId > 0
+  and fullGetSlotId(FULL_SLOT_NECK) ~= amuletId then
+
+    if fullEquipToSlot(
+      amuletId,
+      FULL_SLOT_NECK
+    ) then
       return
     end
   end
 end)
-
 --========================================================
 -- DOUBLE UE
 --========================================================
@@ -17219,10 +17262,20 @@ local function smart(s)
 end
 
 local function parseHunt(text)
-  local hunt=tostring(text or ""):match("[Yy]our hunt for%s+(.+)%s+has begun")
+  text=tostring(text or "")
+
+  local hunt=text:match("[Yy]our hunt for%s+(.+)%s+has begun")
+          or text:match("[Tt]he hunt for%s+(.+)%s+continues%.?")
+          or text:match("[Yy]our hunt for%s+(.+)%s+continues%.?")
+
   if not hunt then return end
   hunt=smart(hunt)
-  for key,t in pairs(TASKS) do if smart(key)==hunt or smart(t.label)==hunt then return key end end
+
+  for key,t in pairs(TASKS) do
+    if smart(key)==hunt or smart(t.label)==hunt then
+      return key
+    end
+  end
 end
 local function trackerBar(kills,required,emptyText)
   kills,required=math.max(0,tonumber(kills) or 0),math.max(0,tonumber(required) or 0)
@@ -17606,6 +17659,91 @@ local function atualizar()
     local concluida=cfg.completed[chave]==true
     addTask(concluida and ragnarInterface.listTaskConcl or ragnarInterface.listTaskRagnar,chave,concluida)
   end
+end
+
+-- =========================================================
+-- SINCRONIZA LISTA DE TASKS DISPONIVEIS INFORMADA PELO RAGNAR
+-- Ex.:
+-- "Choose your hunt and choose it wisely: {Warlocks}, {Oramond} and {Iksupan}."
+--
+-- Somente as tasks do NIVEL ATUAL sao alteradas.
+-- Nomes que nao existem em TASKS (ex.: Iksupan) sao ignorados.
+-- =========================================================
+local function ragnarListName(s)
+  return tostring(s or "")
+    :lower()
+    :gsub("’","'")
+    :gsub("[{}]","")
+    :gsub("[^%w%s]","")
+    :gsub("^%s+","")
+    :gsub("%s+$","")
+    :gsub("%s+"," ")
+end
+
+local function handleRagnarAvailableList(text)
+  text=tostring(text or "")
+
+  local hunts=text:match("[Cc]hoose your hunt and choose it wisely:%s*(.+)")
+  if not hunts then return false end
+
+  -- Remove o ponto final e transforma "A, B and C" em "A,B,C".
+  hunts=hunts:gsub("%s+[Aa][Nn][Dd]%s+", ",")
+  hunts=hunts:gsub("[%.!%?]+%s*$","")
+
+  local spoken={}
+  local spokenNames={}
+
+  for part in hunts:gmatch("[^,]+") do
+    local name=ragnarListName(part)
+    if name~="" then
+      spoken[name]=true
+      spokenNames[#spokenNames+1]=name
+    end
+  end
+
+  local levelTasks=TASKS_BY_LEVEL[cfg.level] or {}
+  local available={}
+  local found=0
+
+  -- Compara cada nome que o NPC falou com o LABEL da tabela TASKS.
+  for _,key in ipairs(levelTasks) do
+    local task=TASKS[key]
+    if task and spoken[ragnarListName(task.label)] then
+      available[key]=true
+      found=found+1
+    end
+  end
+
+  -- As citadas continuam disponiveis.
+  -- Todo o restante DO NIVEL SELECIONADO vai para concluidas.
+  for _,key in ipairs(levelTasks) do
+    if available[key] then
+      cfg.completed[key]=nil
+    else
+      cfg.completed[key]=true
+    end
+  end
+
+  -- Se havia uma task antiga salva que nao esta mais disponivel,
+  -- remove somente o estado "ativa"; o progresso salvo permanece.
+  if cfg.current and TASKS[cfg.current] and
+     TASKS[cfg.current].level==cfg.level and
+     not available[cfg.current] then
+    cfg.current=nil
+    cfg.kills=0
+    cfg.required=0
+  end
+
+  atualizar()
+  refreshTracker()
+
+  print(
+    "Task Ragnar: lista sincronizada | Nivel "..tostring(cfg.level)..
+    " | reconhecidas: "..tostring(found)..
+    " | NPC: "..table.concat(spokenNames,", ")
+  )
+
+  return true
 end
 
 local function selecionarNivel(nivel)
@@ -18096,15 +18234,37 @@ function ragnarGotoTask()
 end
 
 local npcBusy=false
-local function npcSequence(words,done,i)
+
+local function npcSequence(words,done,i,stopOnActive)
   i=i or 1
-  if not words[i] then npcBusy=false; if done then done() end; return end
+
+  -- Usado apenas ao PEGAR task:
+  -- se o Ragnar informou que já existe uma task ativa,
+  -- não fala nome de outra task nem "yes".
+  if stopOnActive and ragnarActiveTask() then
+    npcBusy=false
+    if done then done() end
+    return
+  end
+
+  if not words[i] then
+    npcBusy=false
+    if done then done() end
+    return
+  end
+
   NPC.say(words[i])
-  schedule(1000,function() npcSequence(words,done,i+1) end)
+
+  schedule(1000,function()
+    npcSequence(words,done,i+1,stopOnActive)
+  end)
 end
-local function startNpcSequence(words,done)
+
+local function startNpcSequence(words,done,stopOnActive)
   if npcBusy then return false end
-  npcBusy=true; npcSequence(words,done); return true
+  npcBusy=true
+  npcSequence(words,done,1,stopOnActive)
+  return true
 end
 local REPORT_CONFIRMATIONS={
   "task is complete",
@@ -18152,7 +18312,7 @@ function ragnarReportTask()
   end
 
   pendingReportKey,pendingReportStarted=key,nowMs()
-  if not startNpcSequence({"hi","task", "report","yes"}) then
+  if not startNpcSequence({"hi","task", "report","yes"},nil,false) then
     pendingReportKey,pendingReportStarted=nil,0
     return false
   end
@@ -18167,29 +18327,101 @@ function ragnarReportTask()
   return true
 end
 
+local function activateRagnarTask(key)
+  local task=key and TASKS[key]
+  if not task then return false end
+
+  -- Se estava marcada manualmente como concluída, volta para disponível.
+  cfg.completed[key]=nil
+
+  -- Garante que o painel esteja no nível da task detectada.
+  if cfg.level~=task.level then
+    selecionarNivel(task.level)
+  else
+    atualizar()
+  end
+
+  setTrackedTask(key)
+
+  print("Task Ragnar: task ativa detectada -> "..tostring(task.label))
+  return true
+end
+
 onTalk(function(name,level,mode,text,channelId)
-  if name and norm(name)=="ragnar" then
+  -- Teste da sua própria custom confirmou:
+  -- NAME=Ragnar | MODE=51 | CHANNEL=0
+  if name and norm(name)=="ragnar" and mode==51 then
     if handleTaskCancel(text) then return end
     if handleRagnarReportConfirmation(name,text) then return end
+
+    -- Se o Ragnar informou a lista de hunts disponíveis,
+    -- sincroniza o painel antes de qualquer outra ação.
+    if handleRagnarAvailableList(text) then
+      return
+    end
+
+    local key=parseHunt(text)
+    if key then
+      activateRagnarTask(key)
+      return
+    end
   end
+
   if not rb.enabled then return end
-  if channelId==11 then handleLoot(text,"talk"); handleHit(text,"talk") end
-  if name and norm(name)=="ragnar" then local key=parseHunt(text); if key then setTrackedTask(key) end end
+
+  if channelId==11 then
+    handleLoot(text,"talk")
+    handleHit(text,"talk")
+  end
 end)
+
 onTextMessage(function(mode,text)
   if handleTaskCancel(text) then return end
   if handleRagnarReportConfirmation(nil,text) then return end
+
   if not rb.enabled then return end
-  local key=parseHunt(text); if key then setTrackedTask(key) end
-  handleHit(text,"text"); handleLoot(text,"text")
+
+  -- Mantém apenas como fallback para mensagens de sistema.
+  local key=parseHunt(text)
+  if key then activateRagnarTask(key) end
+
+  handleHit(text,"text")
+  handleLoot(text,"text")
 end)
+
 function ragnarRandomTask()
-  if npcBusy or ragnarActiveTask() then return false end
+  -- CORREÇÃO PRINCIPAL:
+  -- se já existe uma task ativa, a Function terminou com sucesso.
+  if ragnarActiveTask() then
+    npcBusy=false
+    return true
+  end
+
+  -- Conversa ainda acontecendo: segura o CaveBot aqui.
+  if npcBusy then
+    return false
+  end
+
   local list=ragnarAvailableTasks()
-  if #list==0 then return nil end
+  if #list==0 then
+    return nil
+  end
+
   local key=list[math.random(#list)]
-  if not startNpcSequence({"hi","task",TASKS[key].label,"yes"}) then return false end
-  return key,TASKS[key]
+
+  -- stopOnActive=true:
+  -- se após "task" vier "The hunt for X continues.",
+  -- a próxima fala agendada é cancelada automaticamente.
+  if not startNpcSequence(
+    {"hi","task",TASKS[key].label,"yes"},
+    nil,
+    true
+  ) then
+    return false
+  end
+
+  -- NÃO libera o CaveBot enquanto a conversa não definir uma task.
+  return false
 end
 
 local ragnarCaveAtual = nil
@@ -18254,4 +18486,793 @@ function checkSupplies(labelSemSupply,labelComSupply)
   return true
 end
 
+end)
+
+lnsRunBlock("Lure_pos", function()
+storage = storage or {}
+storage.lureConfig = storage.lureConfig or {
+  enabled = false,
+  quantifyMobs = 2,
+  keepDistance = 2,
+  walkDelay = 400,
+  mobs = "",
+  lurePositions = {},
+  killPos = nil
+}
+storage.lureWindow = storage.lureWindow or {}
+local cfg = storage.lureConfig
+local windowCfg = storage.lureWindow
+cfg.enabled = cfg.enabled == true
+cfg.quantifyMobs = tonumber(cfg.quantifyMobs) or 2
+cfg.keepDistance = tonumber(cfg.keepDistance) or 2
+cfg.walkDelay = tonumber(cfg.walkDelay) or 400
+cfg.mobs = type(cfg.mobs) == "string" and cfg.mobs or ""
+cfg.lurePositions = type(cfg.lurePositions) == "table" and cfg.lurePositions or {}
+local lureControl = setupUI([[
+Panel
+  height: 19
+  BotSwitch
+    id: title
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-right: 45
+    height: 18
+    text-align: center
+    text: Lure Mobs
+    color: white
+  Button
+    id: settings
+    anchors.top: prev.top
+    anchors.left: prev.right
+    anchors.right: parent.right
+    margin-left: 2
+    height: 18
+    text: Config
+    color: white
+]])
+local lurePanel = setupUI([[
+MiniWindow
+  id: lurePanel
+  text: Lure & Kill Position
+  width: 170
+  height: 325
+  icon: /images/topbuttons/battle
+  icon-size: 15 15
+  
+  FlatPanel
+    id: contentPanel
+    anchors.fill: parent
+    margin-top: 20
+    margin-left: 5
+    margin-right: 5
+    margin-bottom: 5
+    Label
+      id: quantifyLabel
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      margin-top: 8
+      margin-left: 8
+      margin-right: 8
+      text: QUANTIFY MOBS
+      font: cipsoftFont
+      color: white
+    HorizontalScrollBar
+      id: quantifyMobs
+      anchors.top: quantifyLabel.bottom
+      anchors.left: quantifyLabel.left
+      anchors.right: quantifyLabel.right
+      minimum: 1
+      maximum: 10
+      step: 1
+    Button
+      id: toolQnt
+      anchors.verticalCenter: quantifyLabel.verticalCenter
+      anchors.right: prev.right
+      size: 12 12
+      margin-top: -1
+      text: ?
+      tooltip: Quantidade de mobs para começar andar ate a posicao de KILL.
+    Label
+      id: distanceLabel
+      anchors.top: quantifyMobs.bottom
+      anchors.left: quantifyMobs.left
+      anchors.right: quantifyMobs.right
+      margin-top: 10
+      text: KEEP DISTANCE
+      font: cipsoftFont
+      color: white
+    HorizontalScrollBar
+      id: keepDistance
+      anchors.top: distanceLabel.bottom
+      anchors.left: distanceLabel.left
+      anchors.right: distanceLabel.right
+      minimum: 1
+      maximum: 5
+      step: 1
+    Button
+      id: toolQnt
+      anchors.verticalCenter: distanceLabel.verticalCenter
+      anchors.right: prev.right
+      size: 12 12
+      margin-top: -1
+      text: ?
+      tooltip: Distancia a se manter dos mobs que estao sendo lurados.
+    Label
+      id: delayLabel
+      anchors.top: keepDistance.bottom
+      anchors.left: keepDistance.left
+      anchors.right: keepDistance.right
+      margin-top: 10
+      text: WALKING DELAY
+      font: cipsoftFont
+      color: white
+    HorizontalScrollBar
+      id: walkDelay
+      anchors.top: delayLabel.bottom
+      anchors.left: delayLabel.left
+      anchors.right: delayLabel.right
+      minimum: 0
+      maximum: 2000
+      step: 50
+    Button
+      id: toolQnt
+      anchors.verticalCenter: delayLabel.verticalCenter
+      anchors.right: prev.right
+      size: 12 12
+      margin-top: -1
+      text: ?
+      tooltip: Delay entre os passos ate cehgar na kill pos.
+    HorizontalSeparator
+      id: separator1
+      anchors.top: walkDelay.bottom
+      anchors.left: walkDelay.left
+      anchors.right: walkDelay.right
+      margin-top: 10
+    Label
+      id: mobsLabel
+      anchors.top: separator1.bottom
+      anchors.left: separator1.left
+      margin-top: 10
+      text: "MOBS TO LURE:"
+      text-auto-resize: true
+      font: cipsoftFont
+      color: white
+    Button
+      id: mobsButton
+      anchors.verticalCenter: mobsLabel.verticalCenter
+      anchors.left: mobsLabel.right
+      anchors.right: parent.right
+      margin-left: 8
+      margin-right: 8
+      height: 18
+      text: EDIT
+      font: cipsoftFont
+      color: white
+    HorizontalSeparator
+      id: separator2
+      anchors.top: mobsButton.bottom
+      anchors.left: separator1.left
+      anchors.right: separator1.right
+      margin-top: 5
+    Label
+      id: killPosLabel
+      anchors.top: separator2.bottom
+      anchors.left: separator2.left
+      anchors.right: separator2.right
+      margin-top: 8
+      text: KILLING POSITION
+      font: cipsoftFont
+      color: yellow
+    Button
+      id: killPosButton
+      anchors.top: killPosLabel.bottom
+      anchors.left: killPosLabel.left
+      anchors.right: killPosLabel.right
+      height: 18
+      text: MARK
+      font: cipsoftFont
+      color: white
+    Label
+      id: lurePosLabel
+      anchors.top: killPosButton.bottom
+      anchors.left: killPosButton.left
+      anchors.right: killPosButton.right
+      margin-top: 10
+      text: LURE MARKING
+      font: cipsoftFont
+      color: #87CEEB
+    Button
+      id: lurePosButton
+      anchors.top: lurePosLabel.bottom
+      anchors.left: lurePosLabel.left
+      anchors.right: lurePosLabel.right
+      height: 18
+      text: MARK / REMOVE
+      font: cipsoftFont
+      color: white
+    Button
+      id: clearMarksButton
+      anchors.top: lurePosButton.bottom
+      anchors.left: lurePosButton.left
+      anchors.right: lurePosButton.right
+      margin-top: 8
+      height: 18
+      text: CLEAR ALL MARK
+      font: cipsoftFont
+      color: #FF6B6B
+]], g_ui.getRootWidget())
+local function W(parent, id)
+  if not parent then return nil end
+  if parent.getChildById then
+    local w = parent:getChildById(id)
+    if w then return w end
+  end
+  return parent.recursiveGetChildById and parent:recursiveGetChildById(id) or nil
+end
+local contentPanel = W(lurePanel, "contentPanel")
+local quantifyLabel = W(lurePanel, "quantifyLabel")
+local quantifyMobs = W(lurePanel, "quantifyMobs")
+local distanceLabel = W(lurePanel, "distanceLabel")
+local keepDistance = W(lurePanel, "keepDistance")
+local delayLabel = W(lurePanel, "delayLabel")
+local walkDelay = W(lurePanel, "walkDelay")
+local mobsButton = W(lurePanel, "mobsButton")
+local killPosLabel = W(lurePanel, "killPosLabel")
+local killPosButton = W(lurePanel, "killPosButton")
+local lurePosLabel = W(lurePanel, "lurePosLabel")
+local lurePosButton = W(lurePanel, "lurePosButton")
+local clearMarksButton = W(lurePanel, "clearMarksButton")
+local function trim(s)
+  return tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", "")
+end
+local function copyPos(p)
+  return p and {x = p.x, y = p.y, z = p.z} or nil
+end
+local function samePos(a, b)
+  return a and b and a.x == b.x and a.y == b.y and a.z == b.z
+end
+local function posText(p)
+  return p and string.format("(%d, %d, %d)", p.x, p.y, p.z) or "(N/D)"
+end
+if cfg.lurePos then
+  local exists = false
+  for _, p in ipairs(cfg.lurePositions) do
+    if samePos(p, cfg.lurePos) then exists = true break end
+  end
+  if not exists then cfg.lurePositions[#cfg.lurePositions + 1] = copyPos(cfg.lurePos) end
+  cfg.lurePos = nil
+end
+local function updateLureLabel()
+  local n = #cfg.lurePositions
+  if n == 0 then
+    lurePosLabel:setText("LURE MARKING: (N/D)")
+  elseif n == 1 then
+    lurePosLabel:setText("LURE MARKING: " .. posText(cfg.lurePositions[1]))
+  else
+    lurePosLabel:setText("LURE MARKING: " .. n .. " POINTS")
+  end
+end
+quantifyMobs:setValue(cfg.quantifyMobs)
+quantifyLabel:setText("QUANTIFY MOBS: " .. cfg.quantifyMobs)
+quantifyMobs.onValueChange = function(_, value)
+  cfg.quantifyMobs = value
+  quantifyLabel:setText("QUANTIFY MOBS: " .. value)
+end
+keepDistance:setValue(cfg.keepDistance)
+distanceLabel:setText("KEEP DISTANCE: " .. cfg.keepDistance)
+keepDistance.onValueChange = function(_, value)
+  cfg.keepDistance = value
+  distanceLabel:setText("KEEP DISTANCE: " .. value)
+end
+walkDelay:setValue(cfg.walkDelay)
+delayLabel:setText("WALKING DELAY: " .. cfg.walkDelay .. " ms")
+walkDelay.onValueChange = function(_, value)
+  cfg.walkDelay = value
+  delayLabel:setText("WALKING DELAY: " .. value .. " ms")
+end
+local mobRow = [[
+UIWidget
+  height: 18
+  focusable: true
+  background-color: alpha
+  opacity: 1.00
+  $hover:
+    background-color: #2F2F2F
+    opacity: 0.75
+  $focus:
+    background-color: #404040
+    opacity: 0.90
+  Label
+    id: creatureName
+    anchors.left: parent.left
+    anchors.verticalCenter: parent.verticalCenter
+    margin-left: 6
+    font: verdana-11px-rounded
+    color: white
+    text: ""
+  Button
+    id: remove
+    anchors.right: parent.right
+    anchors.verticalCenter: parent.verticalCenter
+    width: 16
+    height: 16
+    margin-right: 2
+    text: X
+    color: #FF4040
+    image-source: /images/ui/button_rounded
+    image-color: #363636
+]]
+local mobWindow = setupUI([[
+MainWindow
+  id: lureMobListWindow
+  size: 250 315
+  text: Mobs to Lure
+  anchors.centerIn: parent
+  margin-top: -50
+  Panel
+    id: panelList
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    height: 225
+    margin: -6
+    margin-bottom: 3
+    margin-top: 1
+    image-source: /images/ui/miniwindow
+    image-border: 20
+  TextList
+    id: nameList
+    anchors.top: panelList.top
+    anchors.left: panelList.left
+    anchors.right: panelList.right
+    anchors.bottom: panelList.bottom
+    margin-top: 21
+    margin-left: 5
+    margin-right: 17
+    margin-bottom: 5
+    vertical-scrollbar: nameListScroll
+  VerticalScrollBar
+    id: nameListScroll
+    anchors.top: nameList.top
+    anchors.bottom: nameList.bottom
+    anchors.left: nameList.right
+    width: 13
+    step: 18
+    pixels-scroll: true
+  TextEdit
+    id: inputName
+    anchors.left: panelList.left
+    anchors.right: addName.left
+    anchors.bottom: closePanel.top
+    margin-right: 3
+    margin-bottom: 4
+    height: 20
+    placeholder: Creature name
+  Button
+    id: addName
+    anchors.right: panelList.right
+    anchors.bottom: closePanel.top
+    margin-bottom: 4
+    size: 35 20
+    text: +
+  Button
+    id: closePanel
+    anchors.left: panelList.left
+    anchors.right: panelList.right
+    anchors.bottom: parent.bottom
+    height: 22
+    text: Close
+]], g_ui.getRootWidget())
+mobWindow:hide()
+local function mobNames()
+  local list = {}
+  for line in (cfg.mobs .. "\n"):gmatch("(.-)\n") do
+    local name = trim(line)
+    if name ~= "" then list[#list + 1] = name end
+  end
+  return list
+end
+local function saveMobNames(list)
+  cfg.mobs = table.concat(list, "\n")
+end
+local function mobExists(name)
+  name = trim(name):lower()
+  for _, current in ipairs(mobNames()) do
+    if current:lower() == name then return true end
+  end
+  return false
+end
+local function refreshMobList()
+  local list = W(mobWindow, "nameList")
+  if not list then return end
+  local children = list:getChildren() or {}
+  for i = #children, 1, -1 do children[i]:destroy() end
+  for _, name in ipairs(mobNames()) do
+    local row = setupUI(mobRow, list)
+    W(row, "creatureName"):setText(name)
+    W(row, "remove").onClick = function()
+      local newList = {}
+      for _, current in ipairs(mobNames()) do
+        if current:lower() ~= name:lower() then newList[#newList + 1] = current end
+      end
+      saveMobNames(newList)
+      refreshMobList()
+    end
+  end
+end
+local function addMob()
+  local input = W(mobWindow, "inputName")
+  if not input then return end
+  local name = trim(input:getText())
+  if name == "" or mobExists(name) then
+    input:setText("")
+    return
+  end
+  local list = mobNames()
+  list[#list + 1] = name
+  saveMobNames(list)
+  input:setText("")
+  refreshMobList()
+end
+W(mobWindow, "addName").onClick = addMob
+W(mobWindow, "closePanel").onClick = function() mobWindow:hide() end
+W(mobWindow, "inputName").onKeyPress = function(_, keyCode)
+  if keyCode == KeyEnter or keyCode == KeyReturn then
+    addMob()
+    return true
+  end
+  return false
+end
+mobsButton.onClick = function()
+  refreshMobList()
+  mobWindow:show()
+  mobWindow:raise()
+  mobWindow:focus()
+end
+refreshMobList()
+local function setMark(p, text)
+  if not p then return end
+  local tile = g_map.getTile(p)
+  if tile and tile.getText and tile:getText() ~= text then
+    pcall(function() tile:setText(text) end)
+  end
+end
+local function clearMark(p)
+  if not p then return end
+  local tile = g_map.getTile(p)
+  if tile and tile.getText then
+    local text = tile:getText() or ""
+    if text == "KILL" or text:match("^LURE") then
+      pcall(function() tile:setText("") end)
+    end
+  end
+end
+local function clearRouteMarks()
+  for _, p in ipairs(cfg.lurePositions) do clearMark(p) end
+end
+local function refreshMarks()
+  setMark(cfg.killPos, "KILL")
+  for i, p in ipairs(cfg.lurePositions) do
+    setMark(p, "LURE " .. i)
+  end
+end
+killPosLabel:setText("KILLING POSITION: " .. posText(cfg.killPos))
+updateLureLabel()
+local runtime = {
+  state = "walking",
+  routeIndex = 1,
+  nextStep = 0,
+  autoTarget = nil,
+  previousTarget = nil
+}
+local function stopWalk()
+  runtime.autoTarget = nil
+  if player and player.stopAutoWalk then
+    pcall(function()
+      if player:isAutoWalking() then player:stopAutoWalk() end
+    end)
+  end
+end
+local function resetRuntime()
+  runtime.state = "walking"
+  runtime.routeIndex = math.min(math.max(runtime.routeIndex, 1), math.max(#cfg.lurePositions, 1))
+  runtime.nextStep = 0
+  stopWalk()
+end
+killPosButton.onClick = function()
+  local p = player and player:getPosition()
+  if not p then return end
+  clearMark(cfg.killPos)
+  cfg.killPos = copyPos(p)
+  killPosLabel:setText("KILLING POSITION: " .. posText(cfg.killPos))
+  setMark(cfg.killPos, "KILL")
+  resetRuntime()
+end
+lurePosButton.onClick = function()
+  local p = player and player:getPosition()
+  if not p then return end
+  clearRouteMarks()
+  for i = #cfg.lurePositions, 1, -1 do
+    if samePos(cfg.lurePositions[i], p) then
+      table.remove(cfg.lurePositions, i)
+      runtime.routeIndex = 1
+      updateLureLabel()
+      refreshMarks()
+      resetRuntime()
+      return
+    end
+  end
+  cfg.lurePositions[#cfg.lurePositions + 1] = copyPos(p)
+  runtime.routeIndex = 1
+  updateLureLabel()
+  refreshMarks()
+  resetRuntime()
+end
+clearMarksButton.onClick = function()
+  clearMark(cfg.killPos)
+  clearRouteMarks()
+  cfg.killPos = nil
+  cfg.lurePositions = {}
+  killPosLabel:setText("KILLING POSITION: (N/D)")
+  updateLureLabel()
+  resetRuntime()
+end
+windowCfg.minimized = windowCfg.minimized == true
+if windowCfg.visible == nil then windowCfg.visible = false end
+local NORMAL_HEIGHT = 325
+local MINIMIZED_HEIGHT = 25
+local normalHeight = tonumber(windowCfg.normalHeight) or NORMAL_HEIGHT
+if lurePanel.setDraggable then lurePanel:setDraggable(true) end
+local function restorePosition()
+  if windowCfg.x ~= nil and windowCfg.y ~= nil then
+    lurePanel:setX(tonumber(windowCfg.x) or 0)
+    lurePanel:setY(tonumber(windowCfg.y) or 0)
+    return
+  end
+  local root = g_ui.getRootWidget()
+  if not root then return end
+  lurePanel:setX(math.max(0, math.floor((root:getWidth() - lurePanel:getWidth()) / 2)))
+  lurePanel:setY(math.max(0, math.floor((root:getHeight() - lurePanel:getHeight()) / 2) - 50))
+  windowCfg.x = lurePanel:getX()
+  windowCfg.y = lurePanel:getY()
+end
+local function setMinimized(state)
+  state = state == true
+  windowCfg.minimized = state
+  if state then
+    if lurePanel:getHeight() > MINIMIZED_HEIGHT then
+      normalHeight = lurePanel:getHeight()
+      windowCfg.normalHeight = normalHeight
+    end
+    contentPanel:hide()
+    lurePanel:setHeight(MINIMIZED_HEIGHT)
+  else
+    lurePanel:setHeight(tonumber(windowCfg.normalHeight) or normalHeight)
+    contentPanel:show()
+  end
+end
+restorePosition()
+lurePanel.onGeometryChange = function(widget, oldRect)
+  if not oldRect or oldRect.width == 0 and oldRect.height == 0 then return end
+  windowCfg.x = widget:getX()
+  windowCfg.y = widget:getY()
+  if not windowCfg.minimized then
+    normalHeight = widget:getHeight()
+    windowCfg.normalHeight = normalHeight
+  end
+end
+local miniScroll = W(lurePanel, "miniwindowScrollBar")
+if miniScroll then miniScroll:hide() end
+if lurePanel.minimizeButton then
+  lurePanel.minimizeButton:setMarginLeft(23)
+  lurePanel.minimizeButton.onClick = function()
+    setMinimized(not windowCfg.minimized)
+  end
+end
+if lurePanel.lockButton then lurePanel.lockButton:hide() end
+if lurePanel.closeButton then
+  lurePanel.closeButton.onClick = function()
+    windowCfg.visible = false
+    lurePanel:hide()
+  end
+end
+schedule(100, function()
+  if lurePanel and not lurePanel:isDestroyed() then setMinimized(windowCfg.minimized) end
+end)
+local function targetIsOn()
+  if not TargetBot or type(TargetBot.isOn) ~= "function" then return false end
+  local ok, state = pcall(function() return TargetBot.isOn() end)
+  return ok and state == true
+end
+local function setTarget(state)
+  if not TargetBot or targetIsOn() == state then return end
+  local fn = state and TargetBot.setOn or TargetBot.setOff
+  if type(fn) == "function" then pcall(fn) end
+end
+local function configuredMobs()
+  local set = {}
+  for _, name in ipairs(mobNames()) do set[name:lower()] = true end
+  return set
+end
+local function nearbyMobs()
+  local list = {}
+  local me = player and player:getPosition()
+  if not me then return list end
+  local allowed = configuredMobs()
+  for _, creature in ipairs(getSpectators(false) or {}) do
+    local monster = false
+    pcall(function() monster = creature:isMonster() end)
+    if monster and allowed[tostring(creature:getName() or ""):lower()] then
+      local p = creature:getPosition()
+      if p and p.z == me.z and getDistanceBetween(me, p) <= 7 then
+        local path = findPath(me, p, 20, {ignoreLastCreature = true})
+        if path then list[#list + 1] = creature end
+      end
+    end
+  end
+  return list
+end
+local function closestDistance(mobs, me)
+  local closest = nil
+  for _, creature in ipairs(mobs) do
+    local p = creature:getPosition()
+    if p then
+      local d = getDistanceBetween(me, p)
+      if not closest or d < closest then closest = d end
+    end
+  end
+  return closest
+end
+local function autoWalkTo(destination)
+  if not destination then return end
+  local me = player and player:getPosition()
+  if not me or me.z ~= destination.z then return end
+  if getDistanceBetween(me, destination) < 2 then
+    runtime.autoTarget = nil
+    return
+  end
+  local walking = false
+  pcall(function() walking = player:isAutoWalking() end)
+  if not walking or not samePos(runtime.autoTarget, destination) then
+    runtime.autoTarget = copyPos(destination)
+    pcall(function()
+      autoWalk(destination, 124, {
+        ignoreNonPathable = true,
+        precision = 1,
+        ignoreStairs = false
+      })
+    end)
+  end
+end
+local function stepTo(destination, delayMs)
+  if not destination or now < runtime.nextStep then return end
+  local me = player and player:getPosition()
+  if not me or me.z ~= destination.z or samePos(me, destination) then return end
+  stopWalk()
+  local walking = false
+  pcall(function() walking = player:isWalking() end)
+  if walking then return end
+  local path = findPath(me, destination, 40, {
+    ignoreNonPathable = false,
+    ignoreStairs = false,
+    precision = 1
+  })
+  if path and #path > 0 then
+    g_game.walk(path[1])
+    runtime.nextStep = now + (tonumber(delayMs) or 0)
+  end
+end
+local function nextRoute()
+  local total = #cfg.lurePositions
+  if total == 0 then
+    runtime.routeIndex = 1
+  else
+    runtime.routeIndex = runtime.routeIndex % total + 1
+  end
+end
+local function setEnabled(state)
+  state = state == true
+  if state and not cfg.enabled then
+    runtime.previousTarget = targetIsOn()
+  end
+  cfg.enabled = state
+  lureControl.title:setOn(state)
+  resetRuntime()
+  if state then
+    setTarget(false)
+  else
+    if runtime.previousTarget ~= nil then setTarget(runtime.previousTarget) end
+    runtime.previousTarget = nil
+  end
+end
+lureControl.title:setOn(cfg.enabled)
+lureControl.title.onClick = function(widget) setEnabled(not widget:isOn()) end
+lureControl.settings.onClick = function()
+  windowCfg.visible = true
+  lurePanel:show()
+  lurePanel:raise()
+  lurePanel:focus()
+end
+macro(100, function()
+  if not cfg.enabled or not g_game.isOnline() then return end
+  local me = player and player:getPosition()
+  if not me then return end
+  if #cfg.lurePositions == 0 or not cfg.killPos or trim(cfg.mobs) == "" then
+    setTarget(false)
+    stopWalk()
+    return
+  end
+  local mobs = nearbyMobs()
+  local count = #mobs
+  local required = math.max(1, tonumber(cfg.quantifyMobs) or 2)
+  local keep = math.max(1, tonumber(cfg.keepDistance) or 2)
+  if runtime.state == "killing" then
+    setTarget(true)
+    if me.z == cfg.killPos.z and not samePos(me, cfg.killPos) then
+      stepTo(cfg.killPos, 0)
+      return
+    end
+    if count == 0 then
+      setTarget(false)
+      runtime.state = "walking"
+    end
+    return
+  end
+  if runtime.state == "luring" then
+    setTarget(false)
+    if count == 0 then
+      runtime.state = "walking"
+      return
+    end
+    if me.z == cfg.killPos.z and getDistanceBetween(me, cfg.killPos) <= 3 then
+      nextRoute()
+      runtime.state = "killing"
+      setTarget(true)
+      return
+    end
+    local closest = closestDistance(mobs, me)
+    if closest and closest > keep then
+      stopWalk()
+      return
+    end
+    stepTo(cfg.killPos, cfg.walkDelay)
+    return
+  end
+  setTarget(false)
+  if count >= required then
+    stopWalk()
+    runtime.state = "luring"
+    return
+  end
+  local point = cfg.lurePositions[runtime.routeIndex]
+  if not point then
+    runtime.routeIndex = 1
+    point = cfg.lurePositions[1]
+  end
+  if not point then return end
+  if me.z == point.z and getDistanceBetween(me, point) < 2 then
+    nextRoute()
+    return
+  end
+  autoWalkTo(point)
+end)
+macro(200, function()
+  refreshMarks()
+end)
+local startEnabled = cfg.enabled
+cfg.enabled = false
+setEnabled(startEnabled)
+
+schedule(120, function()
+  if not lurePanel or lurePanel:isDestroyed() then return end
+
+  if windowCfg.visible == true then
+    lurePanel:show()
+    lurePanel:raise()
+  else
+    lurePanel:hide()
+  end
+end)
 end)
