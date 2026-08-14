@@ -39,132 +39,29 @@ local function lnsRunBlock(name, fn)
 end
 
 lnsRunBlock("ATTACKBOT", function()
------ ATTACKBOT
--- Storage global unico do AttackBot.
--- Usa somente storage.LNSAttackBotGlobal.
 storage = storage or {}
 storage.LNSAttackBotGlobal = type(storage.LNSAttackBotGlobal) == "table" and storage.LNSAttackBotGlobal or {}
-
 local attackBotStorage = storage.LNSAttackBotGlobal
-
-local function lnsAttackDeepCopy(t)
-  if type(t) ~= "table" then return t end
-  local r = {}
-  for k, v in pairs(t) do
-    r[k] = lnsAttackDeepCopy(v)
-  end
-  return r
-end
-
-local function lnsAttackNormalizeIdList(list)
-  local out, seen = {}, {}
-  for _, entry in ipairs(list or {}) do
-    local id = type(entry) == "table" and tonumber(entry.id) or tonumber(entry)
-    if id and not seen[id] then
-      seen[id] = true
-      table.insert(out, id)
-    end
-  end
-  table.sort(out)
-  return out
-end
-
-local function lnsAttackNormalizeContainerItems(items)
+local function normalizeContainerItems(items)
   local r = {}
   if type(items) ~= "table" then return r end
-
   for _, v in pairs(items) do
-    local id = nil
-
-    if type(v) == "table" then
-      id = (v.getId and v:getId()) or v.id
-    else
-      id = v
-    end
-
+    local id = type(v) == "table" and ((v.getId and v:getId()) or v.id) or v
     id = tonumber(id)
-    if id and id > 0 then
-      table.insert(r, id)
-    end
+    if id and id > 0 then table.insert(r, id) end
   end
-
   return r
 end
-
-local function lnsAttackNowStorageTs()
-  return tostring(os.time()) .. tostring(math.random(1000, 9999))
-end
-
-local function lnsAttackNormalizeSharedMap(mapOrList)
-  if type(mapOrList) == "table" then
-    for k, _ in pairs(mapOrList) do
-      if type(k) == "string" then
-        return mapOrList
-      end
-    end
-  end
-
-  local out = {}
-  for _, id in ipairs(lnsAttackNormalizeIdList(mapOrList)) do
-    out[tostring(id)] = { state = true, ts = "0" }
-  end
-  return out
-end
-
-local function lnsAttackSharedMapToList(map)
-  local out = {}
-  for k, v in pairs(map or {}) do
-    local id = tonumber(k)
-    if id and type(v) == "table" and v.state == true then
-      table.insert(out, id)
-    end
-  end
-  table.sort(out)
-  return out
-end
-
-local function lnsAttackMergeSharedMaps(a, b)
-  local out = {}
-  a = lnsAttackNormalizeSharedMap(a)
-  b = lnsAttackNormalizeSharedMap(b)
-
-  for k, v in pairs(a) do
-    out[k] = { state = v.state == true, ts = tostring(v.ts or "0") }
-  end
-
-  for k, v in pairs(b) do
-    local cur = out[k]
-    local newTs = tostring(v.ts or "0")
-    if not cur or newTs > tostring(cur.ts or "0") then
-      out[k] = { state = v.state == true, ts = newTs }
-    end
-  end
-
-  return out
-end
-
-local normalizeIdList = lnsAttackNormalizeIdList
-local normalizeContainerItems = lnsAttackNormalizeContainerItems
-local nowStorageTs = lnsAttackNowStorageTs
-local normalizeSharedMap = lnsAttackNormalizeSharedMap
-local sharedMapToList = lnsAttackSharedMapToList
-local mergeSharedMaps = lnsAttackMergeSharedMaps
-
 attackBotStorage.attackBotShared = type(attackBotStorage.attackBotShared) == "table" and attackBotStorage.attackBotShared or {}
-
 local function saveAttackBotStorage()
   storage.LNSAttackBotGlobal = attackBotStorage
 end
-
 local function saveAttackBotShared()
   attackBotStorage.attackBotShared = type(attackBotStorage.attackBotShared) == "table" and attackBotStorage.attackBotShared or {}
   storage.LNSAttackBotGlobal = attackBotStorage
 end
-
-
 switchCombo = "comboButton"
 attackBotStorage[switchCombo] = attackBotStorage[switchCombo] or { enabled = false }
-
 comboButton = setupUI([[
 Panel
   height: 40
@@ -178,7 +75,6 @@ Panel
     text: AttackBot
     height: 18
     color: white
-
   Button
     id: settings
     anchors.top: prev.top
@@ -189,7 +85,6 @@ Panel
     text: Config
     opacity: 1.00
     color: white
-
   Button
     id: 1
     anchors.top: prev.bottom
@@ -198,7 +93,6 @@ Panel
     margin-right: 2
     margin-top: 4
     size: 17 17
-
   Button
     id: 2
     anchors.verticalCenter: prev.verticalCenter
@@ -206,7 +100,6 @@ Panel
     text: 2
     margin-left: 4
     size: 17 17
-    
   Button
     id: 3
     anchors.verticalCenter: prev.verticalCenter
@@ -214,15 +107,13 @@ Panel
     text: 3
     margin-left: 4
     size: 17 17
-
   Button
     id: 4
     anchors.verticalCenter: prev.verticalCenter
     anchors.left: prev.right
     text: 4
     margin-left: 4
-    size: 17 17 
-    
+    size: 17 17
   Button
     id: 5
     anchors.verticalCenter: prev.verticalCenter
@@ -230,7 +121,6 @@ Panel
     text: 5
     margin-left: 4
     size: 17 17
-    
   Label
     id: name
     anchors.verticalCenter: prev.verticalCenter
@@ -250,14 +140,12 @@ comboButton.title.onClick = function(widget)
   attackBotStorage[switchCombo].enabled = state
   saveAttackBotStorage()
 end
-
 comboInterface = setupUI([=[
 MainWindow
   id: mainPanel
   size: 310 388
   text: Panel AttackBot
   margin-top: -50
-
   Button
     id: tabConfig
     checkable: true
@@ -268,7 +156,6 @@ MainWindow
     width: 144
     text-align: center
     text: Config
-
     UIItem
       id: idConfig
       anchors.top: parent.top
@@ -278,7 +165,6 @@ MainWindow
       size: 33 33
       padding: 3
       phantom: true
-
     UIWidget
       id: activeLine
       anchors.left: prev.right
@@ -290,7 +176,6 @@ MainWindow
       background-color: #d7c08a
       visible: false
       phantom: true
-
   Button
     id: tabAntired
     checkable: true
@@ -301,7 +186,6 @@ MainWindow
     width: 145
     text-align: center
     text: Antired
-
     UIItem
       id: idAntired
       anchors.top: parent.top
@@ -311,7 +195,6 @@ MainWindow
       size: 33 33
       padding: 3
       phantom: true
-
     UIWidget
       id: activeLine
       anchors.left: prev.right
@@ -323,7 +206,6 @@ MainWindow
       background-color: #d7c08a
       visible: false
       phantom: true
-
   FlatPanel
     id: flatConfig
     anchors.top: tabConfig.bottom
@@ -334,7 +216,6 @@ MainWindow
     margin-left: -5
     margin-top: 6
     margin-right: -5
-
     Label
       id: title
       anchors.horizontalCenter: parent.horizontalCenter
@@ -343,7 +224,6 @@ MainWindow
       margin-top: 6
       font: verdana-11px-rounded
       text-auto-resize: true
-
     HorizontalSeparator
       anchors.top: prev.bottom
       anchors.left: parent.left
@@ -351,7 +231,6 @@ MainWindow
       margin-top: 5
       margin-left: 8
       margin-right: 8
-
     TextList
       id: spellList
       anchors.top: prev.bottom
@@ -366,7 +245,6 @@ MainWindow
       vertical-scrollbar: spellListScrollBar
       opacity: 0.95
       font: verdana-11px-rounded
-
     VerticalScrollBar
       id: spellListScrollBar
       anchors.top: spellList.top
@@ -375,11 +253,8 @@ MainWindow
       step: 10
       pixels-scroll: true
       visible: true
-      border: 1 #1f1f1f
-      image-color: #363636
       opacity: 0.90
       margin-left: 0
-
     Button
       id: adicionarSpell
       anchors.left: parent.left
@@ -389,7 +264,6 @@ MainWindow
       width: 135
       height: 20
       text: Add Spell
-
     Button
       id: adicionarRuna
       anchors.right: parent.right
@@ -398,14 +272,12 @@ MainWindow
       width: 135
       height: 20
       text: Add Rune
-
   FlatPanel
     id: flatAntired
     anchors.top: flatConfig.top
     anchors.left: flatConfig.left
     anchors.right: flatConfig.right
     anchors.bottom: flatConfig.bottom
-
     HorizontalScrollBar
       id: minutosVoltarUnsafe
       anchors.left: parent.left
@@ -417,7 +289,6 @@ MainWindow
       minimum: 1
       maximum: 120
       step: 1
-
     Label
       id: labelReactiveUnsafe
       anchors.left: prev.left
@@ -427,7 +298,6 @@ MainWindow
       margin-top: -1
       text-align: center
       text: Reactive in:
-
     BotSwitch
       id: manterDist
       anchors.left: parent.left
@@ -438,7 +308,6 @@ MainWindow
       margin-right: 8
       height: 18
       text: Pause Spells Unsafe
-
     HorizontalSeparator
       id: HsepFrags
       anchors.top: prev.bottom
@@ -447,7 +316,6 @@ MainWindow
       margin-top: 8
       margin-left: 8
       margin-right: 8
-
     HorizontalScrollBar
       id: qtdeFrags
       anchors.left: prev.left
@@ -457,7 +325,6 @@ MainWindow
       minimum: 1
       maximum: 8
       step: 1
-
     Label
       id: labelExitFrags
       anchors.left: prev.left
@@ -466,7 +333,6 @@ MainWindow
       text: Amount Frags: 1
       margin-top: -1
       text-align: center
-
     BotSwitch
       id: deslogarFrags
       anchors.left: prev.left
@@ -475,7 +341,6 @@ MainWindow
       margin-top: 5
       height: 18
       text: Exit on Frags
-
     HorizontalSeparator
       id: HsepFrags
       anchors.top: prev.bottom
@@ -484,7 +349,6 @@ MainWindow
       margin-top: 8
       margin-left: 8
       margin-right: 8
-
     HorizontalScrollBar
       id: distSegura
       anchors.left: parent.left
@@ -496,7 +360,6 @@ MainWindow
       minimum: 1
       maximum: 12
       step: 1
-
     Label
       id: labelDistSegura
       anchors.left: prev.left
@@ -505,7 +368,6 @@ MainWindow
       text: Dist Check Players: 0
       margin-top: -1
       text-align: center
-
     Panel
       id: checkPlayersLine
       anchors.left: prev.left
@@ -513,7 +375,6 @@ MainWindow
       anchors.top: prev.bottom
       margin-top: 5
       height: 20
-
       BotSwitch
         id: checkPlayers
         anchors.left: parent.left
@@ -521,7 +382,6 @@ MainWindow
         width: 132
         height: 18
         text: Check Players
-
       BotSwitch
         id: checkFloors
         anchors.left: checkPlayers.right
@@ -530,7 +390,6 @@ MainWindow
         margin-left: 4
         height: 18
         text: Other Floors
-
     HorizontalSeparator
       id: HsepFrags
       anchors.top: prev.bottom
@@ -539,7 +398,6 @@ MainWindow
       margin-top: 8
       margin-left: 8
       margin-right: 8
-
     HorizontalScrollBar
       id: distStairs
       anchors.left: prev.left
@@ -549,7 +407,6 @@ MainWindow
       minimum: 1
       maximum: 12
       step: 1
-
     Label
       id: labelDistStairs
       anchors.left: prev.left
@@ -558,7 +415,6 @@ MainWindow
       text: Dist Check Stairs: 0
       margin-top: -1
       text-align: center
-
     Panel
       id: idsSafeAndares
       anchors.top: prev.bottom
@@ -566,7 +422,6 @@ MainWindow
       anchors.left: prev.left
       anchors.right: prev.right
       height: 74
-
     BotSwitch
       id: checkStairs
       anchors.left: prev.left
@@ -575,7 +430,6 @@ MainWindow
       margin-top: -1
       height: 18
       text: Check Stairs
-
   Button
     id: closePanel
     anchors.left: flatConfig.left
@@ -586,20 +440,16 @@ MainWindow
     text: Close
 ]=], g_ui.getRootWidget())
 comboInterface:hide()
-
 local function WAttackBotPanel(root, id)
   if not root or not id then return nil end
-
   if root.getChildById then
     local ok, child = pcall(function() return root:getChildById(id) end)
     if ok and child then return child end
   end
-
   if root.recursiveGetChildById then
     local ok, child = pcall(function() return root:recursiveGetChildById(id) end)
     if ok and child then return child end
   end
-
   if root.getChildren then
     local ok, childs = pcall(function() return root:getChildren() end)
     if ok and childs then
@@ -609,10 +459,8 @@ local function WAttackBotPanel(root, id)
       end
     end
   end
-
   return nil
 end
-
 local function bindAttackBotPanelIds()
   local ids = {
     "tabConfig", "tabAntired", "flatConfig", "flatAntired",
@@ -622,7 +470,6 @@ local function bindAttackBotPanelIds()
     "checkPlayers", "checkFloors", "labelDistStairs", "distStairs",
     "idsSafeAndares", "checkStairs", "closePanel"
   }
-
   for i = 1, #ids do
     local id = ids[i]
     if not comboInterface[id] then
@@ -630,7 +477,6 @@ local function bindAttackBotPanelIds()
     end
   end
 end
-
 local function showAttackBotWidget(widget, visible)
   if not widget then return end
   if visible then
@@ -639,67 +485,50 @@ local function showAttackBotWidget(widget, visible)
     if widget.hide then widget:hide() end
   end
 end
-
 local function setAttackBotTabPressed(button, pressed)
   if not button then return end
   showAttackBotWidget(WAttackBotPanel(button, "activeLine"), pressed)
-
   if button.setChecked then pcall(function() button:setChecked(pressed) end) end
   if button.setPressed then pcall(function() button:setPressed(pressed) end) end
   if button.setOn then pcall(function() button:setOn(pressed) end) end
-
   if button.setOpacity then button:setOpacity(pressed and 1.00 or 0.74) end
   if button.setColor then button:setColor(pressed and "#d7c08a" or "#d6d6d6") end
 end
-
 local function setAttackBotPanelTab(tab)
   if tab ~= "config" and tab ~= "antired" then tab = "config" end
-
   showAttackBotWidget(comboInterface.flatConfig, tab == "config")
   showAttackBotWidget(comboInterface.flatAntired, tab == "antired")
-
   setAttackBotTabPressed(comboInterface.tabConfig, tab == "config")
   setAttackBotTabPressed(comboInterface.tabAntired, tab == "antired")
 end
-
 bindAttackBotPanelIds()
-
 local function setAttackBotIcon(widget, id)
   if widget and widget.setItemId then
     pcall(function() widget:setItemId(tonumber(id) or 0) end)
   end
 end
-
 if comboInterface.tabConfig and not comboInterface.tabConfig.idConfig then
   comboInterface.tabConfig.idConfig = WAttackBotPanel(comboInterface.tabConfig, "idConfig")
 end
-
 if comboInterface.tabAntired and not comboInterface.tabAntired.idAntired then
   comboInterface.tabAntired.idAntired = WAttackBotPanel(comboInterface.tabAntired, "idAntired")
 end
-
--- Troque estes IDs se quiser outros icones nas abas.
 setAttackBotIcon(comboInterface.tabConfig and comboInterface.tabConfig.idConfig, 3283)
 setAttackBotIcon(comboInterface.tabAntired and comboInterface.tabAntired.idAntired, 37338)
-
 if comboInterface.tabConfig then
   comboInterface.tabConfig.onClick = function()
     setAttackBotPanelTab("config")
   end
 end
-
 if comboInterface.tabAntired then
   comboInterface.tabAntired.onClick = function()
     setAttackBotPanelTab("antired")
   end
 end
-
 setAttackBotPanelTab("config")
-
 if modules._G.g_app.isMobile() then
   comboInterface:setSize("350 505")
 end
-
 comboButton.settings.onClick = function()
   if not comboInterface:isVisible() then
     comboInterface:show()
@@ -708,7 +537,6 @@ comboButton.settings.onClick = function()
   end
 end
 comboInterface.closePanel.onClick = function() comboInterface:hide() end
-
 spellAddPanel = setupUI([=[
 MainWindow
   id: spellAddPanel
@@ -716,7 +544,6 @@ MainWindow
   anchors.centerIn: parent
   margin-top: -50
   text: Insert Spell AttackBot
-
   ComboBox
     id: selectType
     anchors.left: parent.left
@@ -732,7 +559,6 @@ MainWindow
         self:addOption("Paladin")
         self:addOption("Monk")
         self:addOption("Mage")
-
   FlatPanel
     id: panelMain
     anchors.top: prev.bottom
@@ -741,7 +567,6 @@ MainWindow
     height: 215
     margin: -6
     margin-top: 5
-
     Label
       id: magiaLabel
       anchors.top: parent.top
@@ -752,7 +577,6 @@ MainWindow
       margin-right: 5
       margin-top: 4
       font: verdana-11px-rounded
-
     TextEdit
       id: magia
       anchors.top: prev.bottom
@@ -761,7 +585,6 @@ MainWindow
       margin-top: 3
       placeholder: Insert spell here
       visible: true
-
     ComboBox
       id: magiaSelect
       anchors.left: prev.left
@@ -771,7 +594,6 @@ MainWindow
       visible: false
       @onSetup: |
           self:addOption(" ")
-
     Label
       id: distanceLabel
       anchors.top: prev.bottom
@@ -780,7 +602,6 @@ MainWindow
       margin-top: 8
       text: Distance:
       font: verdana-11px-rounded
-
     HorizontalScrollBar
       id: distance
       anchors.top: prev.bottom
@@ -790,7 +611,6 @@ MainWindow
       minimum: 1
       maximum: 12
       step: 1
-
     Label
       id: manaLabel
       anchors.top: prev.bottom
@@ -799,7 +619,6 @@ MainWindow
       margin-top: 8
       text: Mana:
       font: verdana-11px-rounded
-
     HorizontalScrollBar
       id: mana
       anchors.top: prev.bottom
@@ -809,7 +628,6 @@ MainWindow
       minimum: 0
       maximum: 1000
       step: 10
-
     Label
       id: mobsLabel
       anchors.top: prev.bottom
@@ -818,7 +636,6 @@ MainWindow
       margin-top: 8
       text: Mobs:
       font: verdana-11px-rounded
-
     HorizontalScrollBar
       id: mobs
       anchors.top: prev.bottom
@@ -828,7 +645,6 @@ MainWindow
       minimum: 1
       maximum: 10
       step: 1
-
     Label
       id: cdLabel
       anchors.top: prev.bottom
@@ -837,7 +653,6 @@ MainWindow
       margin-top: 8
       text: Cooldown:
       font: verdana-11px-rounded
-
     HorizontalScrollBar
       id: cooldown
       anchors.top: prev.bottom
@@ -848,7 +663,6 @@ MainWindow
       minimum: 0
       maximum: 60000
       step: 1
-
     Button
       id: calculeCooldown
       anchors.top: prev.top
@@ -859,7 +673,6 @@ MainWindow
       height: 13
       margin-left: 2
       font: verdana-11px-rounded
-
     CheckBox
       id: safe
       anchors.top: prev.bottom
@@ -868,7 +681,6 @@ MainWindow
       text: Spell Safe?
       font: verdana-11px-rounded
       text-auto-resize: true
-
   Button
     id: cancelarBt
     anchors.left: panelMain.left
@@ -877,7 +689,6 @@ MainWindow
     margin-top: 5
     text: Cancel
     font: verdana-11px-rounded
-
   Button
     id: adicionarBt
     anchors.right: panelMain.right
@@ -891,7 +702,6 @@ spellAddPanel:hide()
 if modules._G.g_app.isMobile() then
   spellAddPanel:setSize("260 325")
 end
-
 runeAddPanel = setupUI([=[
 MainWindow
   id: runeAddPanel
@@ -899,7 +709,6 @@ MainWindow
   anchors.centerIn: parent
   margin-top: -50
   text: Insert Rune AttackBot
-
   FlatPanel
     id: panelMain
     anchors.top: parent.top
@@ -908,7 +717,6 @@ MainWindow
     height: 150
     margin: -6
     margin-top: 0
-
     Label
       id: runaLabel
       anchors.top: parent.top
@@ -919,14 +727,12 @@ MainWindow
       margin-right: 5
       margin-top: 15
       font: verdana-11px-rounded
-
     BotItem
       id: runa
       anchors.top: prev.top
       anchors.right: parent.right
       margin-right: 8
       margin-top: -10
-
     Label
       id: distanceLabel
       anchors.top: prev.bottom
@@ -936,7 +742,6 @@ MainWindow
       margin-right: 5
       text: Distance:
       font: verdana-11px-rounded
-
     HorizontalScrollBar
       id: distance
       anchors.top: prev.bottom
@@ -946,7 +751,6 @@ MainWindow
       minimum: 1
       maximum: 12
       step: 1
-
     Label
       id: mobsLabel
       anchors.top: prev.bottom
@@ -955,7 +759,6 @@ MainWindow
       margin-top: 8
       text: Mobs:
       font: verdana-11px-rounded
-
     HorizontalScrollBar
       id: mobs
       anchors.top: prev.bottom
@@ -965,7 +768,6 @@ MainWindow
       minimum: 1
       maximum: 10
       step: 1
-
     CheckBox
       id: safe
       anchors.top: mobs.bottom
@@ -974,7 +776,6 @@ MainWindow
       text: Rune Safe?
       font: verdana-11px-rounded
       text-auto-resize: true
-
   Button
     id: cancelarBt
     anchors.left: panelMain.left
@@ -983,7 +784,6 @@ MainWindow
     margin-top: 5
     text: Cancel
     font: verdana-11px-rounded
-
   Button
     id: adicionarBt
     anchors.right: panelMain.right
@@ -997,7 +797,6 @@ runeAddPanel:hide()
 if modules._G.g_app.isMobile() then
   runeAddPanel:setSize("220 230")
 end
- 
 profileNamePanel = setupUI([=[
 MainWindow
   id: attackProfileNamePanel
@@ -1005,7 +804,6 @@ MainWindow
   anchors.centerIn: parent
   margin-top: -50
   text: Rename AttackBot Profile
-
   FlatPanel
     id: panelMain
     anchors.top: parent.top
@@ -1014,7 +812,6 @@ MainWindow
     height: 58
     margin: -6
     margin-top: 0
-
     Label
       id: info
       anchors.top: parent.top
@@ -1025,7 +822,6 @@ MainWindow
       margin-top: 5
       text: Nome do profile:
       font: verdana-11px-rounded
-
     TextEdit
       id: profileName
       anchors.top: prev.bottom
@@ -1033,7 +829,6 @@ MainWindow
       anchors.right: prev.right
       margin-top: 5
       placeholder: #N/D
-
   Button
     id: cancelarBt
     anchors.left: panelMain.left
@@ -1042,7 +837,6 @@ MainWindow
     margin-top: 5
     text: Cancel
     font: verdana-11px-rounded
-
   Button
     id: salvarBt
     anchors.right: panelMain.right
@@ -1053,40 +847,20 @@ MainWindow
     font: verdana-11px-rounded
 ]=], g_ui.getRootWidget())
 profileNamePanel:hide()
-
-
 local sharedCfg = type(attackBotStorage.attackBotShared) == "table" and attackBotStorage.attackBotShared or {}
 attackBotStorage.attackBotShared = sharedCfg
-
---==================================================
--- SHARED ATTACKBOT STAIRS STORAGE
--- Salva a lista de Stairs em: /bot/<config atual>/storage/shared/sharedAttackBot.json
--- Todos os chars que usam a mesma config leem a mesma lista.
---==================================================
-
-local SHARED_ATTACK_DIR = nil
 local SHARED_ATTACK_FILE = nil
-local SharedAttackState = {
-  loaded = false,
-  lastSync = 0,
-  lastJson = ""
-}
-
 local function getCurrentAttackBotConfigName()
   local panel = modules and modules.game_bot and modules.game_bot.contentsPanel
   local cfgPanel = panel and panel.config
   local opt = cfgPanel and cfgPanel.getCurrentOption and cfgPanel:getCurrentOption()
-
   if opt and opt.text and tostring(opt.text) ~= "" then
     return tostring(opt.text)
   end
-
   return nil
 end
-
 local function safeAttackDirExists(path)
   if not g_resources then return false end
-
   if g_resources.directoryExists then
     local ok, exists = pcall(function()
       return g_resources.directoryExists(path)
@@ -1095,78 +869,56 @@ local function safeAttackDirExists(path)
       return true
     end
   end
-
   return false
 end
-
 local function safeAttackMakeDir(path)
   if not path or path == "" then return false end
   if safeAttackDirExists(path) then return true end
   if not g_resources or not g_resources.makeDir then return false end
-
   local ok = pcall(function()
     g_resources.makeDir(path)
   end)
-
   if not ok then return false end
   return safeAttackDirExists(path)
 end
-
 local function safeAttackFileExists(path)
   if not path or path == "" then return false end
   if not g_resources or not g_resources.fileExists then return false end
-
   local ok, exists = pcall(function()
     return g_resources.fileExists(path)
   end)
-
   return ok and exists == true
 end
-
 local function safeAttackWriteDefaultFile(path, defaultJson)
   if not path or path == "" then return false end
   if safeAttackFileExists(path) then return true end
   if not g_resources or not g_resources.writeFileContents then return false end
-
   local ok = pcall(function()
     g_resources.writeFileContents(path, defaultJson or "{}")
   end)
-
   if not ok then return false end
   return true
 end
-
 local function initSharedAttackPath()
   if SHARED_ATTACK_FILE then return true end
-
   local configName = getCurrentAttackBotConfigName()
   if not configName or configName == "" then
     return false
   end
-
-  -- Cria primeiro a pasta pai, depois a pasta shared, e só então cria o .json.
-  -- Isso evita debug em client que não aceita read/write em arquivo inexistente.
   local baseDir = "/bot/" .. configName .. "/storage/"
   local sharedDir = baseDir .. "shared/"
   local filePath = sharedDir .. "sharedAttackBot.json"
-
   if not safeAttackMakeDir(baseDir) then return false end
   if not safeAttackMakeDir(sharedDir) then return false end
   if not safeAttackWriteDefaultFile(filePath, "{\n  \"safeIdsAndares\": []\n}") then return false end
-
-  SHARED_ATTACK_DIR = sharedDir
   SHARED_ATTACK_FILE = filePath
   return true
 end
-
 local function normalizeSharedStairsList(listOrMap)
   local out, used = {}, {}
-
   if type(listOrMap) == "table" then
     for k, v in pairs(listOrMap) do
       local id = nil
-
-      -- Formato antigo em map: ["123"] = { state = true, ts = "..." }
       if type(k) == "string" and type(v) == "table" then
         if v.state == true then
           id = tonumber(k)
@@ -1180,18 +932,15 @@ local function normalizeSharedStairsList(listOrMap)
       else
         id = tonumber(v)
       end
-
       if id and id > 0 and not used[id] then
         used[id] = true
         table.insert(out, id)
       end
     end
   end
-
   table.sort(out)
   return out
 end
-
 local function encodeAttackIdArray(list)
   local parts = {}
   for _, id in ipairs(normalizeSharedStairsList(list)) do
@@ -1199,7 +948,6 @@ local function encodeAttackIdArray(list)
   end
   return "[" .. table.concat(parts, ",") .. "]"
 end
-
 local function encodeSharedAttack(data)
   data = data or {}
   return table.concat({
@@ -1208,149 +956,105 @@ local function encodeSharedAttack(data)
     "}"
   })
 end
-
 local function decodeAttackArray(text, key)
   local result = {}
   text = tostring(text or "")
   key = tostring(key or "")
-
   local body = text:match('"' .. key .. '"%s*:%s*%[(.-)%]')
   if not body then return result end
-
   for value in body:gmatch("%-?%d+") do
     local id = tonumber(value)
     if id and id > 0 then
       table.insert(result, id)
     end
   end
-
   return result
 end
-
 local function decodeAttackMap(text, key)
   local result = {}
   text = tostring(text or "")
   key = tostring(key or "")
-
   local body = text:match('"' .. key .. '"%s*:%s*%{(.*)%}')
   if not body then return result end
-
   for idText, entryBody in body:gmatch('"(%-?%d+)"%s*:%s*%{(.-)%}') do
     local id = tonumber(idText)
     if id and id > 0 and entryBody:match('"state"%s*:%s*true') then
       table.insert(result, id)
     end
   end
-
   return result
 end
-
 local function decodeSharedAttack(text)
   text = tostring(text or "")
-
   local list = normalizeSharedStairsList(decodeAttackArray(text, "safeIdsAndares"))
-
-  -- Compatibilidade com a versao antiga/bugada em formato map:
-  -- { "safeIdsAndares": { "123": { "state": true } } }
   if #list == 0 then
     list = normalizeSharedStairsList(decodeAttackMap(text, "safeIdsAndares"))
   end
-
   return {
     safeIdsAndares = list
   }
 end
-
 local function readSharedAttackFile()
   if not initSharedAttackPath() then return nil end
   if not g_resources or not g_resources.readFileContents then return nil end
-
   local ok, data = pcall(function()
     return g_resources.readFileContents(SHARED_ATTACK_FILE)
   end)
-
   if ok and type(data) == "string" and data ~= "" then
-    SharedAttackState.lastJson = data
     return decodeSharedAttack(data)
   end
-
   return nil
 end
-
 local function writeSharedAttackFile(data)
   if not initSharedAttackPath() then return false end
   if not g_resources or not g_resources.writeFileContents then return false end
-
   local jsonText = encodeSharedAttack(data)
   local ok = pcall(function()
     g_resources.writeFileContents(SHARED_ATTACK_FILE, jsonText)
   end)
-
-  if ok then
-    SharedAttackState.loaded = true
-    SharedAttackState.lastSync = now or 0
-    SharedAttackState.lastJson = jsonText
-  end
-
   return ok == true
 end
-
 local function getSharedAttackFallback(localIds)
   return {
     safeIdsAndares = normalizeSharedStairsList(localIds)
   }
 end
-
 local function loadSharedAttackIds(localIds)
   local shared = readSharedAttackFile()
-
   if not shared then
     shared = getSharedAttackFallback(localIds)
     writeSharedAttackFile(shared)
   else
     shared.safeIdsAndares = normalizeSharedStairsList(shared.safeIdsAndares)
   end
-
-  SharedAttackState.loaded = true
   return shared
 end
-
 local function saveSharedAttackIds(ids)
   ids = ids or {}
-
   local data = {
     safeIdsAndares = normalizeSharedStairsList(ids.safeIdsAndares)
   }
-
   writeSharedAttackFile(data)
   return data
 end
-
 local function applySharedAttackIdsToRuntime(data)
   if not data then return end
-
   sharedCfg.safeIdsAndares = normalizeSharedStairsList(data.safeIdsAndares)
   attackBotStorage.attackBotShared = sharedCfg
   saveAttackBotShared()
 end
-
 local function refreshSharedAttackIds(forceUpdateContainer)
   local data = readSharedAttackFile()
   if not data then return false end
-
   data.safeIdsAndares = normalizeSharedStairsList(data.safeIdsAndares)
   applySharedAttackIdsToRuntime(data)
-
   if forceUpdateContainer and idsSafeContainer then
     idsSafeContainer:setItems(sharedCfg.safeIdsAndares)
   end
-
   return true
 end
-
 sharedCfg.safeIdsAndares = loadSharedAttackIds(sharedCfg.safeIdsAndares).safeIdsAndares
 saveAttackBotShared()
-
 local function cleanAttackProfileName(text)
   text = tostring(text or ""):gsub("^%s+", ""):gsub("%s+$", "")
   if #text > 18 then
@@ -1358,7 +1062,6 @@ local function cleanAttackProfileName(text)
   end
   return text
 end
-
 local function defaultAttackBotProfile()
   return {
     name = "",
@@ -1369,7 +1072,6 @@ local function defaultAttackBotProfile()
       checkFloors = false,
       distSegura = 10,
       distStairs = 6,
-
       minutosVoltarUnsafe = 5,
       disabledByUnsafePK = {},
       reenableUnsafeAt = 0,
@@ -1380,135 +1082,105 @@ local function defaultAttackBotProfile()
     attacks = {}
   }
 end
-
 attackBotStorage.attackBotProfiles = attackBotStorage.attackBotProfiles or {
   activeProfile = 1,
   profiles = {}
 }
-
 for i = 1, 5 do
   attackBotStorage.attackBotProfiles.profiles[i] =
     attackBotStorage.attackBotProfiles.profiles[i] or defaultAttackBotProfile()
 end
-
 attackBotStorage.attackBotProfiles.activeProfile =
   math.max(1, math.min(5, tonumber(attackBotStorage.attackBotProfiles.activeProfile) or 1))
-
 attackBotStorage.attackBotMonkHarmony = attackBotStorage.attackBotMonkHarmony or { points = 0 }
-
 local function getActiveAttackProfileIndex()
   return math.max(1, math.min(5, tonumber(attackBotStorage.attackBotProfiles.activeProfile) or 1))
 end
-
 local function getActiveAttackProfile()
   local idx = getActiveAttackProfileIndex()
   attackBotStorage.attackBotProfiles.profiles[idx] =
     attackBotStorage.attackBotProfiles.profiles[idx] or defaultAttackBotProfile()
-
   local p = attackBotStorage.attackBotProfiles.profiles[idx]
   p.main = p.main or defaultAttackBotProfile().main
   p.attacks = p.attacks or {}
-
   p.main.minutosVoltarUnsafe = tonumber(p.main.minutosVoltarUnsafe) or 5
   p.main.disabledByUnsafePK = type(p.main.disabledByUnsafePK) == "table" and p.main.disabledByUnsafePK or {}
   p.main.reenableUnsafeAt = tonumber(p.main.reenableUnsafeAt) or 0
   p.main.qtdeFrags = tonumber(p.main.qtdeFrags) or 1
   p.main.deslogarFrags = p.main.deslogarFrags == true
   p.main.fragsAtual = tonumber(p.main.fragsAtual) or 0
-
-  -- limpa sobras de versoes antigas que tinham logica antiga de pause por frag
   p.main.disabledByFrag = nil
-
   return p
 end
-
 local function getAttackProfile(idx)
   idx = math.max(1, math.min(5, tonumber(idx) or 1))
   attackBotStorage.attackBotProfiles.profiles[idx] =
     attackBotStorage.attackBotProfiles.profiles[idx] or defaultAttackBotProfile()
-
   local p = attackBotStorage.attackBotProfiles.profiles[idx]
   p.name = cleanAttackProfileName(p.name)
   p.main = p.main or defaultAttackBotProfile().main
   p.attacks = p.attacks or {}
   return p
 end
-
 local function getAttackProfileDisplayName(idx)
   idx = math.max(1, math.min(5, tonumber(idx) or 1))
   local p = getAttackProfile(idx)
   local name = cleanAttackProfileName(p.name)
-
   if name ~= "" then
     return name
   end
-
   return "#" .. idx
 end
-
 local cfg = getActiveAttackProfile()
-
 local function refreshAttackProfileButtons()
   local active = getActiveAttackProfileIndex()
-
   for i = 1, 5 do
     local btn = comboButton and comboButton[tostring(i)]
     if btn then
       local isActive = (i == active)
-
       if btn.setOn then
         btn:setOn(isActive)
       end
-
       if btn.setColor then
         btn:setColor(isActive and "white" or "white")
       end
-
       if btn.setBackgroundColor then
         btn:setBackgroundColor(isActive and "alpha" or "alpha")
       end
-
       if btn.setImageColor then
         btn:setImageColor(isActive and "green" or "gray")
       end
-
       if btn.setOpacity then
         btn:setOpacity(isActive and 1.0 or 0.85)
       end
-
       if btn.setTooltip then
         btn:setTooltip("Profile " .. i .. ": " .. getAttackProfileDisplayName(i))
       end
     end
   end
 end
-
 local function refreshAttackProfileLabel()
   if comboButton and comboButton.name then
     comboButton.name:setText(getAttackProfileDisplayName(getActiveAttackProfileIndex()))
   end
   refreshAttackProfileButtons()
 end
-
 local function setActiveAttackProfile(idx)
   idx = math.max(1, math.min(5, tonumber(idx) or 1))
   attackBotStorage.attackBotProfiles.activeProfile = idx
   cfg = getActiveAttackProfile()
-
   if comboInterface and comboInterface.distSegura then
     comboInterface.distSegura:setValue(cfg.main.distSegura or 10)
   end
   if comboInterface and comboInterface.labelDistSegura then
     comboInterface.labelDistSegura:setText("Dist Check Players: " .. (cfg.main.distSegura or 10))
   end
-
   if comboInterface and comboInterface.distStairs then
     comboInterface.distStairs:setValue(cfg.main.distStairs or 6)
   end
   if comboInterface and comboInterface.labelDistStairs then
     comboInterface.labelDistStairs:setText("Dist Check Stairs: " .. (cfg.main.distStairs or 6))
   end
-
   if comboInterface and comboInterface.manterDist then
     comboInterface.manterDist:setOn(cfg.main.manterDist == true)
   end
@@ -1536,28 +1208,23 @@ local function setActiveAttackProfile(idx)
   if comboInterface and comboInterface.checkFloors then
     comboInterface.checkFloors:setOn(cfg.main.checkFloors == true)
   end
-
   cfg.main.disabledByUnsafePK = type(cfg.main.disabledByUnsafePK) == "table" and cfg.main.disabledByUnsafePK or {}
   cfg.main.reenableUnsafeAt = tonumber(cfg.main.reenableUnsafeAt) or 0
   cfg.main.qtdeFrags = tonumber(cfg.main.qtdeFrags) or 1
   cfg.main.deslogarFrags = cfg.main.deslogarFrags == true
   cfg.main.fragsAtual = tonumber(cfg.main.fragsAtual) or 0
   cfg.main.disabledByFrag = nil
-
   refreshAttackProfileLabel()
   rebuildAttackList()
   saveAttackBotStorage()
 end
-
 local openAttackProfileNameEditor = nil
-
 for i = 1, 5 do
   local btn = comboButton[tostring(i)]
   if btn then
     btn.onClick = function()
       setActiveAttackProfile(i)
     end
-
     btn.onDoubleClick = function()
       setActiveAttackProfile(i)
       if openAttackProfileNameEditor then
@@ -1566,17 +1233,12 @@ for i = 1, 5 do
     end
   end
 end
-
 refreshAttackProfileLabel()
-
-
 local function W(parent, id)
   if not parent then return nil end
   return (parent.getChildById and parent:getChildById(id)) or (parent.recursiveGetChildById and parent:recursiveGetChildById(id))
 end
-
 local function trimText(s) return (s or ""):gsub("^%s+", ""):gsub("%s+$", "") end
-local function trim(s) return trimText(s) end
 local function clearChildren(w) if not w then return end for i = #w:getChildren(), 1, -1 do w:getChildren()[i]:destroy() end end
 local function clamp(v, a, b)
   v = tonumber(v) or a
@@ -1584,53 +1246,43 @@ local function clamp(v, a, b)
   if v > b then return b end
   return v
 end
-
 local profileNameInput = W(profileNamePanel, "profileName")
 local profileNameSave = W(profileNamePanel, "salvarBt")
 local profileNameCancel = W(profileNamePanel, "cancelarBt")
 local renamingAttackProfileIndex = getActiveAttackProfileIndex()
-
 openAttackProfileNameEditor = function(idx)
   idx = math.max(1, math.min(5, tonumber(idx) or getActiveAttackProfileIndex()))
   renamingAttackProfileIndex = idx
-
   local p = getAttackProfile(idx)
-
   if profileNameInput then
     profileNameInput:setText(cleanAttackProfileName(p.name))
   end
-
   if profileNamePanel then
     profileNamePanel:setText("Rename Profile #" .. idx)
     profileNamePanel:show()
     profileNamePanel:raise()
     profileNamePanel:focus()
   end
-
   if profileNameInput and profileNameInput.focus then
     profileNameInput:focus()
   end
 end
-
 if comboButton and comboButton.name then
   comboButton.name.onDoubleClick = function()
     openAttackProfileNameEditor(getActiveAttackProfileIndex())
   end
 end
-
 if profileNameSave then
   profileNameSave.onClick = function()
     local p = getAttackProfile(renamingAttackProfileIndex)
     p.name = cleanAttackProfileName(profileNameInput and profileNameInput:getText() or "")
     saveAttackBotStorage()
     refreshAttackProfileLabel()
-
     if profileNamePanel then
       profileNamePanel:hide()
     end
   end
 end
-
 if profileNameCancel then
   profileNameCancel.onClick = function()
     if profileNamePanel then
@@ -1644,9 +1296,7 @@ local function nowMs()
   return (os.time() * 1000) + math.floor((os.clock() * 1000) % 1000)
 end
 local function setSafeLabel(w, v) if not w then return end w:setColor(v and "#00FF00" or "#FF4040") w:setText(v and "[Safe]" or "[Unsafe]") end
-local function spellInfo(d,m) d=tonumber(d) or 1 m=tonumber(m) or 1 return "["..d.." Sqm | +"..m.." Mob(s)"..(m>1 and "s" or "").."]" end
-local function runeInfo(d,m) d=tonumber(d) or 1 m=tonumber(m) or 1 return "["..d.." Sqm | +"..m.." Mob(s)"..(m>1 and "s" or "").."]" end
-
+local function attackInfo(d,m) d=tonumber(d) or 1 m=tonumber(m) or 1 return "["..d.." Sqm | +"..m.." Mob(s)"..(m>1 and "s" or "").."]" end
 local function getBotItemId(widget)
   if not widget then return 0 end
   if widget.getItemId then
@@ -1662,7 +1312,6 @@ local function getBotItemId(widget)
   end
   return 0
 end
-
 local function setItemIcon(widget, itemId)
   itemId = tonumber(itemId)
   if not widget then return end
@@ -1671,25 +1320,15 @@ local function setItemIcon(widget, itemId)
   if widget.setItemId then return widget:setItemId(itemId) end
   if widget.setItem and Item and Item.create then widget:setItem(Item.create(itemId, 1)) end
 end
-
-
---==================================================
--- SPELL ICONS
--- Puxa o sprite da magia direto do modulo game_spelllist,
--- igual ao Max Attack, usando o nome/words da spell.
---==================================================
 local attackBotSpellIconFile = type(SpelllistSettings) == "table" and SpelllistSettings.Default and SpelllistSettings.Default.iconFile or "/images/game/spells/defaultspells"
 local attackBotSpellIconCache = {}
 local attackBotSpellWordsToName = {}
 local attackBotSpellIconCacheReady = false
-
 local function attackBotNormalizeSpellText(textValue)
   return tostring(textValue or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
 end
-
 local function refreshAttackBotSpellIconCache()
   attackBotSpellWordsToName = {}
-
   if type(SpellInfo) == "table" then
     for _, spellGroup in pairs(SpellInfo) do
       if type(spellGroup) == "table" then
@@ -1701,9 +1340,7 @@ local function refreshAttackBotSpellIconCache()
       end
     end
   end
-
   attackBotSpellIconCache = {}
-
   local spellListModule = modules and modules.game_spelllist
   if spellListModule and spellListModule.spellList then
     pcall(function()
@@ -1711,25 +1348,21 @@ local function refreshAttackBotSpellIconCache()
         spellListModule.updateSpelllist()
       end
     end)
-
     local spellWidgets = {}
     pcall(function()
       spellWidgets = spellListModule.spellList:getChildren() or {}
     end)
-
     for _, spellWidget in ipairs(spellWidgets or {}) do
       local spellWidgetText = ""
       pcall(function()
         spellWidgetText = spellWidget:getText()
       end)
-
       local spellClip
       local clipWidth = 0
       pcall(function()
         spellClip = spellWidget:getImageClip()
         clipWidth = spellClip and spellClip.width or 0
       end)
-
       if spellWidgetText ~= "" and spellClip and clipWidth > 0 then
         attackBotSpellIconCache[#attackBotSpellIconCache + 1] = {
           text = attackBotNormalizeSpellText(spellWidgetText),
@@ -1739,70 +1372,55 @@ local function refreshAttackBotSpellIconCache()
         }
       end
     end
-
     if #attackBotSpellIconCache > 0 then
       attackBotSpellIconCacheReady = true
     end
   end
 end
-
 local function findAttackBotSpellIconClip(spellText)
   if not attackBotSpellIconCacheReady then
     refreshAttackBotSpellIconCache()
   end
-
   local normalizedSpellText = attackBotNormalizeSpellText(spellText)
   local fallbackClip
-
   for _, iconData in ipairs(attackBotSpellIconCache) do
     if iconData.text:find("'" .. normalizedSpellText .. "'", 1, true) then
       if iconData.x ~= 0 or iconData.y ~= 0 then
         return iconData.clip
       end
-
       fallbackClip = fallbackClip or iconData.clip
     end
   end
-
   if fallbackClip then
     return fallbackClip
   end
-
   local spellNameFromWords = attackBotSpellWordsToName[normalizedSpellText]
   if spellNameFromWords then
     local normalizedSpellName = attackBotNormalizeSpellText(spellNameFromWords)
-
     for _, iconDataByName in ipairs(attackBotSpellIconCache) do
       if iconDataByName.text:find(normalizedSpellName, 1, true) then
         if iconDataByName.x ~= 0 or iconDataByName.y ~= 0 then
           return iconDataByName.clip
         end
-
         fallbackClip = fallbackClip or iconDataByName.clip
       end
     end
   end
-
   return fallbackClip
 end
-
 local function setAttackBotSpellIcon(widget, spellText)
   if not widget then return end
-
   local spellClip = findAttackBotSpellIconClip(spellText)
   if not spellClip then
     if widget.hide then widget:hide() elseif widget.setVisible then widget:setVisible(false) end
     return
   end
-
   pcall(function()
     widget:setImageSource(attackBotSpellIconFile)
     widget:setImageClip(spellClip)
   end)
-
   if widget.show then widget:show() elseif widget.setVisible then widget:setVisible(true) end
 end
-
 local function bindSwitch(widget, key)
   widget:setOn(cfg.main[key])
   widget.onClick = function(w)
@@ -1812,13 +1430,11 @@ local function bindSwitch(widget, key)
     saveAttackBotStorage()
   end
 end
-
 comboButton.title:setOn(attackBotStorage[switchCombo].enabled)
 bindSwitch(comboInterface.manterDist, "manterDist")
 bindSwitch(comboInterface.checkPlayers, "checkPlayers")
 bindSwitch(comboInterface.checkStairs, "checkStairs")
 bindSwitch(comboInterface.checkFloors, "checkFloors")
-
 comboInterface.distSegura:setValue(cfg.main.distSegura or 0)
 comboInterface.labelDistSegura:setText("Dist Check Players: " .. (cfg.main.distSegura or 0))
 comboInterface.distSegura.onValueChange = function(_, value)
@@ -1826,7 +1442,6 @@ comboInterface.distSegura.onValueChange = function(_, value)
   comboInterface.labelDistSegura:setText("Dist Check Players: " .. value)
   saveAttackBotStorage()
 end
-
 comboInterface.distStairs:setValue(cfg.main.distStairs or 0)
 comboInterface.labelDistStairs:setText("Dist Check Stairs: " .. (cfg.main.distStairs or 0))
 comboInterface.distStairs.onValueChange = function(_, value)
@@ -1834,65 +1449,47 @@ comboInterface.distStairs.onValueChange = function(_, value)
   comboInterface.labelDistStairs:setText("Dist Check Stairs: " .. value)
   saveAttackBotStorage()
 end
-
 idsSafeContainer = UI.ContainerEx(function(_, items)
   sharedCfg.safeIdsAndares = normalizeSharedStairsList(normalizeContainerItems(items))
   sharedCfg = saveSharedAttackIds(sharedCfg)
   attackBotStorage.attackBotShared = sharedCfg
   saveAttackBotShared()
 end, true, comboInterface.idsSafeAndares)
-
 idsSafeContainer:setParent(comboInterface.idsSafeAndares)
 idsSafeContainer:fill("parent")
 idsSafeContainer:setOpacity(1.00)
 idsSafeContainer:setItems(sharedCfg.safeIdsAndares)
-
 macro(60000, function()
-  -- Recarrega o sharedAttackBot.json para outros chars abertos pegarem alterações.
-  -- Se o painel estiver aberto, não força setItems para não atrapalhar drag/drop.
   local updateContainer = comboInterface and comboInterface.isVisible and not comboInterface:isVisible()
   refreshSharedAttackIds(updateContainer)
 end)
-
 local spellRowTemplate = [[
 UIWidget
   id: root
-  height: 38
+  height: 36
   focusable: true
   draggable: true
   background-color: alpha
   border: 1 alpha
   opacity: 1.00
-  margin-top: 2
-  $hover:
-    background-color: #2a2a2a
-    border: 1 #3a3a3a
-  $focus:
-    background-color: #2a2a2a
-    border: 1 #3a3a3a
-
-  BotSwitch
+  margin-top: 0
+  UIWidget
     id: enabled
     anchors.left: parent.left
     anchors.verticalCenter: parent.verticalCenter
-    margin-left: 4
+    margin-left: 5
     margin-top: 0
-    width: 18
-    height: 18
-    text-align: center
-    color: white
-    image-source: /images/ui/button_rounded
-
+    size: 15 15
+    image-source: /images/game/minimap/flag4
   Panel
     id: iconSpell
     anchors.left: enabled.right
     anchors.verticalCenter: parent.verticalCenter
-    margin-left: 4
+    margin-left: 8
     size: 27 27
     visible: false
     phantom: true
     focusable: false
-
   Label
     id: spellName
     anchors.left: iconSpell.right
@@ -1903,7 +1500,6 @@ UIWidget
     text: ""
     font: verdana-11px-rounded
     text-auto-resize: true
-
   Label
     id: distText
     anchors.left: spellName.left
@@ -1913,7 +1509,6 @@ UIWidget
     text: ""
     font: cipsoftFont
     text-auto-resize: true
-
   Label
     id: safeText
     anchors.left: spellName.right
@@ -1923,7 +1518,6 @@ UIWidget
     text: ""
     font: verdana-11px-rounded
     text-auto-resize: true
-
   Button
     id: remove
     anchors.right: parent.right
@@ -1942,44 +1536,31 @@ UIWidget
       color: #ffd0d0
       opacity: 0.95
 ]]
-
 local runeRowTemplate = [[
 UIWidget
   id: root
-  height: 38
+  height: 36
   focusable: true
   draggable: true
   background-color: alpha
   border: 1 alpha
   opacity: 1.00
-  margin-top: 2
-  $hover:
-    background-color: #2a2a2a
-    border: 1 #3a3a3a
-  $focus:
-    background-color: #2a2a2a
-    border: 1 #3a3a3a
-
-  BotSwitch
+  margin-top: 0
+  UIWidget
     id: enabled
     anchors.left: parent.left
     anchors.verticalCenter: parent.verticalCenter
-    margin-left: 4
+    margin-left: 5
     margin-top: 0
-    width: 18
-    height: 18
-    text-align: center
-    color: white
-    image-source: /images/ui/button_rounded
-
+    size: 15 15
+    image-source: /images/game/minimap/flag4
   UIItem
     id: icon
     anchors.left: enabled.right
     anchors.verticalCenter: parent.verticalCenter
-    margin-left: 2
+    margin-left: 5
     size: 30 30
     visible: false
-
   Label
     id: distText
     anchors.left: icon.right
@@ -1990,7 +1571,6 @@ UIWidget
     text: ""
     font: cipsoftFont
     text-auto-resize: true
-
   Label
     id: safeText
     anchors.left: icon.right
@@ -2000,7 +1580,6 @@ UIWidget
     text: ""
     font: verdana-11px-rounded
     text-auto-resize: true
-
   Button
     id: remove
     anchors.right: parent.right
@@ -2019,10 +1598,6 @@ UIWidget
       color: #ffd0d0
       opacity: 0.95
 ]]
-
-local editingSpellIndex = nil
-local editingRuneIndex = nil
-
 local selectType = W(spellAddPanel, "selectType")
 local magiaSelect = W(spellAddPanel, "magiaSelect")
 local spellMagia = W(spellAddPanel,"magia")
@@ -2038,7 +1613,6 @@ local spellManaLabel = W(spellAddPanel,"manaLabel")
 local spellMobsLabel = W(spellAddPanel,"mobsLabel")
 local spellCooldownLabel = W(spellAddPanel,"cdLabel")
 local spellCalcCooldownBtn = W(spellAddPanel, "calculeCooldown")
-
 local runeItem = W(runeAddPanel,"runa")
 local runeDistance = W(runeAddPanel,"distance")
 local runeMobs = W(runeAddPanel,"mobs")
@@ -2052,45 +1626,35 @@ local unsafeFrags = W(comboInterface, "qtdeFrags")
 local unsafeDeslogar = W(comboInterface, "deslogarFrags")
 local unsafeLabelMin = W(comboInterface, "labelReactiveUnsafe")
 local unsafeLabelFrags = W(comboInterface, "labelExitFrags")
-
 if unsafeMinutos then
   if unsafeMinutos.setMinimum then unsafeMinutos:setMinimum(1) end
   if unsafeMinutos.setMaximum then unsafeMinutos:setMaximum(120) end
   if unsafeMinutos.setStep then unsafeMinutos:setStep(1) end
 end
-
 if unsafeFrags then
   if unsafeFrags.setMinimum then unsafeFrags:setMinimum(1) end
   if unsafeFrags.setMaximum then unsafeFrags:setMaximum(8) end
   if unsafeFrags.setStep then unsafeFrags:setStep(1) end
 end
-
 local function refreshUnsafePanel()
   local min = tonumber(cfg.main.minutosVoltarUnsafe) or 5
   local frags = tonumber(cfg.main.qtdeFrags) or 1
-
   if unsafeMinutos then
     unsafeMinutos:setValue(min)
   end
-
   if unsafeLabelMin then
     unsafeLabelMin:setText("Reactive in: " .. min .. " min")
   end
-
   if unsafeFrags then
     unsafeFrags:setValue(frags)
   end
-
   if unsafeLabelFrags then
     unsafeLabelFrags:setText("Amount Frags: " .. frags)
   end
-
   if unsafeDeslogar then
     unsafeDeslogar:setOn(cfg.main.deslogarFrags == true)
   end
 end
-
--- Tabela com as magias pré-configuradas {Nome, Distância, Mana, Mobs, CD, Safe}
 local predefinedSpells = {
   ["Paladin"] = {
     {"Exevo mas san", 4, 160, 1, 4106, false},
@@ -2117,7 +1681,6 @@ local predefinedSpells = {
     {"Exori tera", 8, 20, 1, 2027, true},
     {"Exevo gran mas tera", 7, 600, 1, 15055, true}
   },
-  -- SPELL, DISTANCIA, MANA, MOBS, COOLDOWN, SAFE
   ["Monk"] = {
     {"Exori Pug", 1, 35, 1, 4096, true},
     {"Exori Amp Pug", 1, 50, 1, 20090, false},
@@ -2131,52 +1694,42 @@ local predefinedSpells = {
     {"Exori Gran Mas Nia", 1, 425, 1, 60081, false}
   }
 }
-
 local function updateSpellPanelLabels()
   if spellDistanceLabel and spellDistance then spellDistanceLabel:setText("Distance: " .. (spellDistance:getValue() or 0)) end
   if spellManaLabel and spellMana then spellManaLabel:setText("Mana: " .. (spellMana:getValue() or 0)) end
   if spellMobsLabel and spellMobs then spellMobsLabel:setText("Mobs: " .. (spellMobs:getValue() or 0)) end
   if spellCooldownLabel and spellCooldown then spellCooldownLabel:setText("Cooldown: " .. (spellCooldown:getValue() or 0)) end
 end
-
 local function updateRunePanelLabels()
   if runeDistanceLabel and runeDistance then runeDistanceLabel:setText("Distance: " .. (runeDistance:getValue() or 0)) end
   if runeMobsLabel and runeMobs then runeMobsLabel:setText("Mobs: " .. (runeMobs:getValue() or 0)) end
 end
-
 if spellDistance then spellDistance.onValueChange = function() updateSpellPanelLabels() end end
 if spellMana then spellMana.onValueChange = function() updateSpellPanelLabels() end end
 if spellMobs then spellMobs.onValueChange = function() updateSpellPanelLabels() end end
 if spellCooldown then spellCooldown.onValueChange = function() updateSpellPanelLabels() end end
 if runeDistance then runeDistance.onValueChange = function() updateRunePanelLabels() end end
 if runeMobs then runeMobs.onValueChange = function() updateRunePanelLabels() end end
-
 if unsafeMinutos then
   unsafeMinutos.onValueChange = function(_, value)
     local v = tonumber(value) or 5
     cfg.main.minutosVoltarUnsafe = v
-
     if unsafeLabelMin then
       unsafeLabelMin:setText("Reactive in: " .. v .. " min")
     end
-
     saveAttackBotStorage()
   end
 end
-
 if unsafeFrags then
   unsafeFrags.onValueChange = function(_, value)
     local v = tonumber(value) or 1
     cfg.main.qtdeFrags = v
-
     if unsafeLabelFrags then
       unsafeLabelFrags:setText("Amount Frags: " .. v)
     end
-
     saveAttackBotStorage()
   end
 end
-
 if unsafeDeslogar then
   unsafeDeslogar.onClick = function(widget)
     local state = not widget:isOn()
@@ -2185,7 +1738,6 @@ if unsafeDeslogar then
     saveAttackBotStorage()
   end
 end
-
 if selectType and magiaSelect and spellMagia then
   selectType.onOptionChange = function(comboBox, option)
     if option == "Editable" then
@@ -2199,7 +1751,6 @@ if selectType and magiaSelect and spellMagia then
     else
       spellMagia:setVisible(false)
       magiaSelect:setVisible(true)
-
       magiaSelect:clearOptions()
       local vocSpells = predefinedSpells[option] or {}
       if #vocSpells == 0 then
@@ -2218,7 +1769,6 @@ if selectType and magiaSelect and spellMagia then
       end
     end
   end
-
   magiaSelect.onOptionChange = function(comboBox, option)
     local currentType = selectType:getCurrentOption().text
     local vocSpells = predefinedSpells[currentType] or {}
@@ -2235,11 +1785,10 @@ if selectType and magiaSelect and spellMagia then
     end
   end
 end
-
 local function resetSpellAddPanel()
   if selectType then selectType:setOption("Editable") end
-  if spellMagia then 
-    spellMagia:setText("") 
+  if spellMagia then
+    spellMagia:setText("")
     spellMagia:setVisible(true)
   end
   if magiaSelect then magiaSelect:setVisible(false) end
@@ -2250,7 +1799,6 @@ local function resetSpellAddPanel()
   if spellSafe then spellSafe:setChecked(false) end
   updateSpellPanelLabels()
 end
-
 local function resetRuneAddPanel()
   if runeItem then
     if runeItem.setItemId then
@@ -2264,7 +1812,6 @@ local function resetRuneAddPanel()
   if runeSafe then runeSafe:setChecked(false) end
   updateRunePanelLabels()
 end
-
 local function setupDragAndDrop(row)
   row.onDragEnter = function(self, mousePos)
     self:setOpacity(0.4)
@@ -2292,21 +1839,21 @@ local function setupDragAndDrop(row)
     return true
   end
 end
-
 local function createSpellRow(data, index)
   local row = setupUI(spellRowTemplate, comboInterface.spellList)
+  row:setBackgroundColor(index % 2 == 1 and "#242424" or "#303030")
   setupDragAndDrop(row) -- Aplica o Drag & Drop na Spell
-
-  row.enabled:setOn(data.enabled == true)
+  local enabled = data.enabled == true
+  row.enabled:setImageSource(enabled and "/images/game/minimap/flag0" or "/images/game/minimap/flag4")
   row.enabled.onClick = function(w)
-    local state = not w:isOn()
-    w:setOn(state)
-    if cfg.attacks[index] then cfg.attacks[index].enabled = state end
+    enabled = not enabled
+    data.enabled = enabled
+    w:setImageSource(enabled and "/images/game/minimap/flag0" or "/images/game/minimap/flag4")
     saveAttackBotStorage()
   end
   setAttackBotSpellIcon(row.iconSpell, data.spell)
   row.spellName:setText(tostring(data.spell or ""))
-  row.distText:setText(spellInfo(data.distance, data.mobs))
+  row.distText:setText(attackInfo(data.distance, data.mobs))
   setSafeLabel(row.safeText, data.safe)
   row.remove.onClick = function()
     table.remove(cfg.attacks, index)
@@ -2330,20 +1877,20 @@ local function createSpellRow(data, index)
     spellAddPanel:focus()
   end
 end
-
 local function createRuneRow(data, index)
   local row = setupUI(runeRowTemplate, comboInterface.spellList)
+  row:setBackgroundColor(index % 2 == 1 and "#242424" or "#303030")
   setupDragAndDrop(row) -- Aplica o Drag & Drop na Runa
-
-  row.enabled:setOn(data.enabled == true)
+  local enabled = data.enabled == true
+  row.enabled:setImageSource(enabled and "/images/game/minimap/flag0" or "/images/game/minimap/flag4")
   row.enabled.onClick = function(w)
-    local state = not w:isOn()
-    w:setOn(state)
-    if cfg.attacks[index] then cfg.attacks[index].enabled = state end
+    enabled = not enabled
+    data.enabled = enabled
+    w:setImageSource(enabled and "/images/game/minimap/flag0" or "/images/game/minimap/flag4")
     saveAttackBotStorage()
   end
   setItemIcon(row.icon, tonumber(data.id) or 0)
-  row.distText:setText(runeInfo(data.distance, data.mobs))
+  row.distText:setText(attackInfo(data.distance, data.mobs))
   setSafeLabel(row.safeText, data.safe)
   row.remove.onClick = function()
     table.remove(cfg.attacks, index)
@@ -2366,11 +1913,10 @@ local function createRuneRow(data, index)
     runeAddPanel:focus()
   end
 end
-
 function rebuildAttackList()
   if not comboInterface or not comboInterface.spellList then return end
   clearChildren(comboInterface.spellList)
-  for i, data in ipairs(cfg.attacks or {}) do 
+  for i, data in ipairs(cfg.attacks or {}) do
     if data.type == "spell" then
       createSpellRow(data, i)
     elseif data.type == "rune" then
@@ -2378,7 +1924,6 @@ function rebuildAttackList()
     end
   end
 end
-
 comboInterface.adicionarSpell.onClick = function()
   editingIndex = nil
   resetSpellAddPanel()
@@ -2387,7 +1932,6 @@ comboInterface.adicionarSpell.onClick = function()
   spellAddPanel:focus()
   spellAddPanel:raise()
 end
-
 comboInterface.adicionarRuna.onClick = function()
   editingIndex = nil
   resetRuneAddPanel()
@@ -2396,11 +1940,8 @@ comboInterface.adicionarRuna.onClick = function()
   runeAddPanel:raise()
   runeAddPanel:focus()
 end
-
 spellAdicionarBt.onClick = function()
   local spellName = ""
-
-  -- Verifica de onde pegar o nome da magia
   if selectType and selectType:getCurrentOption().text == "Editable" then
     spellName = trimText(spellMagia:getText())
   else
@@ -2409,9 +1950,7 @@ spellAdicionarBt.onClick = function()
        return warn("Nenhuma magia válida selecionada para esta vocação.")
     end
   end
-
   if spellName == "" then return warn("Insira ou selecione uma spell.") end
-
   local data = {
     type = "spell",
     enabled = true,
@@ -2423,7 +1962,6 @@ spellAdicionarBt.onClick = function()
     safe = spellSafe:isChecked(),
     nextCast = 0
   }
-
   if editingIndex then
     data.enabled = cfg.attacks[editingIndex] and cfg.attacks[editingIndex].enabled ~= false or true
     data.nextCast = cfg.attacks[editingIndex] and cfg.attacks[editingIndex].nextCast or 0
@@ -2432,17 +1970,14 @@ spellAdicionarBt.onClick = function()
   else
     table.insert(cfg.attacks, data)
   end
-
   saveAttackBotStorage()
   rebuildAttackList()
   spellAddPanel:hide()
   comboInterface:show()
 end
-
 runeAdicionarBt.onClick = function()
   local runeId = getBotItemId(runeItem)
   if not runeId or runeId <= 0 then return warn("Selecione uma rune.") end
-
   local data = {
     type = "rune",
     enabled = true,
@@ -2452,7 +1987,6 @@ runeAdicionarBt.onClick = function()
     safe = runeSafe:isChecked(),
     nextCast = 0
   }
-
   if editingIndex then
     data.enabled = cfg.attacks[editingIndex] and cfg.attacks[editingIndex].enabled ~= false or true
     data.nextCast = cfg.attacks[editingIndex] and cfg.attacks[editingIndex].nextCast or 0
@@ -2461,86 +1995,55 @@ runeAdicionarBt.onClick = function()
   else
     table.insert(cfg.attacks, data)
   end
-
   saveAttackBotStorage()
   rebuildAttackList()
   runeAddPanel:hide()
   comboInterface:show()
 end
-
 spellCancelarBt.onClick = function()
   editingIndex = nil
   spellAddPanel:hide()
   comboInterface:show()
 end
-
 runeCancelarBt.onClick = function()
   editingIndex = nil
   comboInterface:show()
   runeAddPanel:hide()
 end
-
 setActiveAttackProfile(getActiveAttackProfileIndex())
 refreshUnsafePanel()
 updateSpellPanelLabels()
 updateRunePanelLabels()
-
 local SkullWhite = 3
 local SkullRed = 4
 local SkullBlack = 5
-
 local PKSkulls = {
   [SkullWhite] = true,
   [SkullRed] = true,
   [SkullBlack] = true
 }
-
 local function getSafePlayerCheckDist()
   return math.max(1, tonumber(cfg.main.distSegura) or 1)
 end
-
-local function getSafeOtherFloorCheckDist()
-  return math.max(1, tonumber(cfg.main.qtdePlayers) or 1)
-end
-
 local function getSafeStairsCheckDist()
   return math.max(1, tonumber(cfg.main.distStairs) or 1)
 end
-
 local function isPkSkulled(creature)
   if not creature or not creature.getSkull then return false end
   local skull = creature:getSkull()
   return PKSkulls[skull] == true
 end
-
-local function hasPartyShield(creature)
-  if not creature then
-    return false
-  end
-
-  if creature.isPartyMember and creature:isPartyMember() then
-    return true
-  end
-
-  return false
-end
-
 local function isAttackBotFriend(creature)
   if not creature or not creature:isPlayer() or creature:isLocalPlayer() then
     return false
   end
-
   local cname = creature:getName()
   if not cname then return false end
-
-  -- party real, somente pelo estado atual
   if creature.isPartyMember and creature:isPartyMember() then
     return true
   end
-
   local playerListStorage = storage and storage.playerList
   local friends = playerListStorage and playerListStorage.friendList
-
   if type(friends) == "table" then
     for _, friendName in ipairs(friends) do
       if trimText(friendName):lower() == trimText(cname):lower() then
@@ -2548,44 +2051,33 @@ local function isAttackBotFriend(creature)
       end
     end
   end
-
   if type(isFriend) == "function" and isFriend(cname) then
     return true
   end
-
   return false
 end
-
 local function isSpellProtectedPlayer(creature)
   if not creature or not creature:isPlayer() or creature:isLocalPlayer() then
     return false
   end
-
   if isAttackBotFriend(creature) then
     return false
   end
-
   return not isPkSkulled(creature)
 end
-
 local function getPlayerFloorScan()
   local result = {
     sameFloor = false,
     otherFloor = false
   }
-
   local myPos = pos()
   if not myPos then return result end
-
   local maxDist = getSafePlayerCheckDist()
-
   for _, spec in pairs(getSpectators(true)) do
     if isSpellProtectedPlayer(spec) then
       local sPos = spec:getPosition()
-
       if sPos then
         local dist = math.max(math.abs(myPos.x - sPos.x), math.abs(myPos.y - sPos.y))
-
         if sPos.z == myPos.z then
           if cfg.main.checkPlayers and dist <= maxDist then
             result.sameFloor = true
@@ -2598,160 +2090,106 @@ local function getPlayerFloorScan()
       end
     end
   end
-
   return result
 end
-
-local function hasPlayerOnScreenSameFloor()
-  return getPlayerFloorScan().sameFloor == true
-end
-
-local function hasPlayerOnOtherFloors()
-  return getPlayerFloorScan().otherFloor == true
-end
-
 local MINIMAP_STAIRS_COLORS = {
   [210] = true,
   [211] = true,
   [212] = true,
   [213] = true,
-
 }
-
 local function isMinimapStairs(pos)
   if not pos or not g_map or not g_map.getMinimapColor then return false end
-
   local color = g_map.getMinimapColor(pos)
   color = tonumber(color)
-
   if not color then return false end
-
   return MINIMAP_STAIRS_COLORS[color] == true
 end
-
-
 local function hasConfiguredUnsafeId(tile)
   if not tile then return false end
-
   local ids = sharedCfg.safeIdsAndares or {}
-
   for _, item in pairs(tile:getItems() or {}) do
     if item and item.getId and table.find(ids, item:getId()) then
       return true
     end
   end
-
   return false
 end
-
 local function hasYellowMinimapStair(tile)
   if not tile then return false end
   return isMinimapStairs(tile:getPosition()) == true
 end
-
 local function isNearConfiguredStairs()
   if not cfg.main.checkStairs then return false end
-
   local myPos = pos()
   if not myPos then return false end
-
   local stairDist = getSafeStairsCheckDist()
-
-  -- 1) ID configurado = UNSAFE direto, MAS SÓ NO ANDAR ATUAL
   for _, tile in pairs(g_map.getTiles(myPos.z) or {}) do
     local tPos = tile:getPosition()
-
     if tPos then
       local dist = math.max(math.abs(myPos.x - tPos.x), math.abs(myPos.y - tPos.y))
-
       if dist <= stairDist and hasConfiguredUnsafeId(tile) then
         return "id"
       end
     end
   end
-
-  -- 2) Minimap amarelo = só sinalizador de escada/andar, também no andar atual
   for _, tile in pairs(g_map.getTiles(myPos.z) or {}) do
     local tPos = tile:getPosition()
-
     if tPos then
       local dist = math.max(math.abs(myPos.x - tPos.x), math.abs(myPos.y - tPos.y))
-
       if dist <= stairDist and hasYellowMinimapStair(tile) then
         return "yellow"
       end
     end
   end
-
   return false
 end
-
 local function hasPlayerOnOtherFloorsNearStairs()
   if not cfg.main.checkStairs then return false end
-
   local myPos = pos()
   if not myPos then return false end
-
   local maxPlayerDist = getSafePlayerCheckDist()
-
   for _, spec in pairs(getSpectators(true) or {}) do
     if spec and spec:isPlayer() and not spec:isLocalPlayer() and isSpellProtectedPlayer(spec) then
       local sPos = spec:getPosition()
-
       if sPos and sPos.z ~= myPos.z and math.abs(sPos.z - myPos.z) == 1 then
         local dist = math.max(math.abs(myPos.x - sPos.x), math.abs(myPos.y - sPos.y))
-
         if dist <= maxPlayerDist then
           return true
         end
       end
     end
   end
-
   return false
 end
-
 local function hasProtectedPlayerForUnsafe()
   local scan = getPlayerFloorScan()
-
   if scan.sameFloor then return true end
   if hasPlayerOnOtherFloorsNearStairs() then return true end
   if scan.otherFloor then return true end
-
   return false
 end
-
 function LNS_HAS_UNSAFE_CONDITION()
   local scan = getPlayerFloorScan()
-
   if scan.sameFloor then return true end
-
   local stairMode = isNearConfiguredStairs()
-
   if stairMode == "id" then
     return true
   end
-
   if stairMode == "yellow" then
     return hasPlayerOnOtherFloorsNearStairs() == true
   end
-
   if scan.otherFloor then return true end
-
   return false
 end
-
 macro(100, function()
   LNS_HAS_UNSAFE_CONDITION()
   local p = player
   if not p then return end
-
   local unsafe = false
-
   if type(LNS_HAS_UNSAFE_CONDITION) == "function" then
     unsafe = LNS_HAS_UNSAFE_CONDITION() == true
   end
-
   if unsafe then
     if p:getText() ~= "UNSAFE" then
       p:setText("UNSAFE")
@@ -2762,29 +2200,21 @@ macro(100, function()
     end
   end
 end)
-
 local WORLD_COMBAT_LOCK = 300
 local attackGroupReadyAt = 0
 local EXTRA_GROUP_DELAY = 200
-
 local combatGlobalUntil = 0
 local lastRuneGlobal = 0
-
 local function isAttackGroupCooldownActive()
   local isCooldownActive = false
-
   pcall(function()
     local cooldownModule = modules and modules.game_cooldown
-
     if cooldownModule and cooldownModule.isGroupCooldownIconActive then
       isCooldownActive = cooldownModule.isGroupCooldownIconActive(1) == true
     end
   end)
-
   return isCooldownActive
 end
-
-
 local runeCooldownIcon = {
   [3155] = 21,
   [3175] = 116,
@@ -2792,18 +2222,14 @@ local runeCooldownIcon = {
   [3191] = 16,
   [3161] = 115
 }
-
 local function isRuneClientCooldownActive(runeId)
   runeId = tonumber(runeId) or 0
-
   local iconId = runeCooldownIcon[runeId]
   if not iconId then return false end
-
   return modules.game_cooldown
      and modules.game_cooldown.isCooldownIconActive
      and modules.game_cooldown.isCooldownIconActive(iconId) == true
 end
-
 local MONK_HARMONY_MAX = 5
 local MONK_HARMONY_BUILDERS = {
   ["exori gran pug"] = true,
@@ -2819,43 +2245,34 @@ local MONK_HARMONY_FINISHERS = {
   ["exori infir nia"] = true,
   ["exori nia"] = true,
 }
-
 local function monkSpellKey(text)
   return trimText(text):lower()
 end
-
 local function isMonkHarmonyVocation()
   local p = g_game.getLocalPlayer()
   if not p then return false end
   local voc = tonumber(p:getVocation()) or 0
   return voc == 5 or voc == 10
 end
-
 local function monkHarmonyGet()
   return math.max(0, math.min(MONK_HARMONY_MAX, tonumber(attackBotStorage.attackBotMonkHarmony.points) or 0))
 end
-
 local function monkHarmonySet(v)
   attackBotStorage.attackBotMonkHarmony.points = math.max(0, math.min(MONK_HARMONY_MAX, tonumber(v) or 0))
   saveAttackBotStorage()
 end
-
 local function monkHarmonyAdd(v)
   monkHarmonySet(monkHarmonyGet() + (tonumber(v) or 1))
 end
-
 local function monkHarmonyReset()
   monkHarmonySet(0)
 end
-
 local function isHarmonyBuilderSpell(spell)
   return MONK_HARMONY_BUILDERS[monkSpellKey(spell)] == true
 end
-
 local function isHarmonyFinisherSpell(spell)
   return MONK_HARMONY_FINISHERS[monkSpellKey(spell)] == true
 end
-
 local function hasConfiguredHarmonyFinisher()
   for _, attack in ipairs(cfg.attacks or {}) do
     if attack.enabled and attack.type == "spell" and isHarmonyFinisherSpell(attack.spell or "") then
@@ -2864,11 +2281,9 @@ local function hasConfiguredHarmonyFinisher()
   end
   return false
 end
-
 local function monkHarmonyFlowActive()
   return isMonkHarmonyVocation() and hasConfiguredHarmonyFinisher()
 end
-
 local function resetComboCooldowns()
   for _, attack in ipairs(cfg.attacks or {}) do
     attack.nextCast = 0
@@ -2877,14 +2292,12 @@ local function resetComboCooldowns()
   lastRuneGlobal = 0
   monkHarmonyReset()
 end
-
 local function iAmPK()
   local p = g_game.getLocalPlayer()
   if not p then return false end
   local skull = p.getSkull and p:getSkull() or 0
   return PKSkulls[skull] == true
 end
-
 local function iAmDead()
   local p = g_game.getLocalPlayer()
   if not p then return false end
@@ -2893,12 +2306,9 @@ local function iAmDead()
   end
   return false
 end
-
 local function normalizeUnsafePKState()
   cfg.main.disabledByUnsafePK = type(cfg.main.disabledByUnsafePK) == "table" and cfg.main.disabledByUnsafePK or {}
   cfg.main.reenableUnsafeAt = tonumber(cfg.main.reenableUnsafeAt) or 0
-
-  -- compatibilidade/limpeza de versoes antigas
   if type(cfg.main.disabledByFrag) == "table" then
     for _, idx in ipairs(cfg.main.disabledByFrag) do
       local attack = cfg.attacks and cfg.attacks[idx]
@@ -2909,24 +2319,18 @@ local function normalizeUnsafePKState()
     cfg.main.disabledByFrag = nil
   end
 end
-
 local function hasUnsafeDisabledByPK()
   normalizeUnsafePKState()
-
   for _, attack in ipairs(cfg.attacks or {}) do
     if attack and attack.disabledByUnsafePK == true then
       return true
     end
   end
-
   return false
 end
-
 local function disableUnsafeAttacksByPK()
   normalizeUnsafePKState()
-
   local did = false
-
   for _, attack in ipairs(cfg.attacks or {}) do
     if attack and attack.enabled ~= false and attack.safe ~= true then
       attack.enabled = false
@@ -2934,21 +2338,16 @@ local function disableUnsafeAttacksByPK()
       did = true
     end
   end
-
   cfg.main.reenableUnsafeAt = 0
-
   if did then
     rebuildAttackList()
     saveAttackBotStorage()
     warn("[AttackBot] PK detectado - unsafe desligadas.")
   end
 end
-
 local function restoreUnsafeAttacksByPK()
   normalizeUnsafePKState()
-
   local did = false
-
   for _, attack in ipairs(cfg.attacks or {}) do
     if attack and attack.disabledByUnsafePK == true then
       attack.enabled = true
@@ -2956,24 +2355,19 @@ local function restoreUnsafeAttacksByPK()
       did = true
     end
   end
-
   cfg.main.disabledByUnsafePK = {}
   cfg.main.reenableUnsafeAt = 0
-
   if did then
     rebuildAttackList()
     warn("[AttackBot] Unsafe religadas.")
   end
-
   saveAttackBotStorage()
 end
-
-local function countAttackMonstersAround(centerPos, maxDist)
+local function countAttackMonstersAround(centerPos, radius)
   if not centerPos then return 0 end
-
+  radius = math.max(0, tonumber(radius) or 0)
   local count = 0
   local specs = {}
-
   if g_map and g_map.getSpectators then
     local ok, res = pcall(function() return g_map.getSpectators(centerPos, false) end)
     if ok and type(res) == "table" then specs = res end
@@ -2981,151 +2375,135 @@ local function countAttackMonstersAround(centerPos, maxDist)
     local ok, res = pcall(function() return getSpectators(false) end)
     if ok and type(res) == "table" then specs = res end
   end
-
-  for _, s in ipairs(specs) do
-    if s and s.isMonster and s:isMonster() then
-      local sPos = s:getPosition()
-      if sPos and sPos.z == centerPos.z then
-        local dist = math.max(math.abs(centerPos.x - sPos.x), math.abs(centerPos.y - sPos.y))
-        if dist <= (maxDist or 7) then
+  for _, creature in ipairs(specs) do
+    if creature and creature.isMonster and creature:isMonster() then
+      local pos = creature:getPosition()
+      if pos and pos.z == centerPos.z then
+        local dx = math.abs(centerPos.x - pos.x)
+        local dy = math.abs(centerPos.y - pos.y)
+        if math.max(dx, dy) <= radius then
           count = count + 1
         end
       end
     end
   end
-
   return count
 end
-
-local function isSafeAllowedForCurrentTarget(isSafe, targetIsPlayer)
-  if targetIsPlayer then return true end
-  if not hasProtectedPlayerForUnsafe() then return true end
-  return isSafe == true
+local RUNE_MOB_PATTERN = {
+  "0011100",
+  "0111110",
+  "1111111",
+  "1111111",
+  "1111111",
+  "0111110",
+  "0011100"
+}
+local RUNE_MOB_OFFSETS = {}
+do
+  local height = #RUNE_MOB_PATTERN
+  local width = #RUNE_MOB_PATTERN[1]
+  local centerY = math.floor(height / 2) + 1
+  local centerX = math.floor(width / 2) + 1
+  for y, row in ipairs(RUNE_MOB_PATTERN) do
+    for x = 1, #row do
+      if row:sub(x, x) == "1" then
+        RUNE_MOB_OFFSETS[(x - centerX) .. ":" .. (y - centerY)] = true
+      end
+    end
+  end
 end
-
+local function countAttackMonstersByRunePattern(centerPos)
+  if not centerPos then return 0 end
+  local count = 0
+  local specs = {}
+  if g_map and g_map.getSpectators then
+    local ok, res = pcall(function()
+      return g_map.getSpectators(centerPos, false)
+    end)
+    if ok and type(res) == "table" then
+      specs = res
+    end
+  elseif type(getSpectators) == "function" then
+    local ok, res = pcall(function()
+      return getSpectators(false)
+    end)
+    if ok and type(res) == "table" then
+      specs = res
+    end
+  end
+  for _, creature in ipairs(specs) do
+    if creature and creature.isMonster and creature:isMonster() then
+      local pos = creature:getPosition()
+      if pos and pos.z == centerPos.z then
+        local dx = pos.x - centerPos.x
+        local dy = pos.y - centerPos.y
+        if RUNE_MOB_OFFSETS[dx .. ":" .. dy] then
+          count = count + 1
+        end
+      end
+    end
+  end
+  return count
+end
 local function attackReady(attack)
   return now >= (tonumber(attack.nextCast) or 0)
 end
-
-local function canCastSpellAttack(attack, dist, targetIsPlayer, pPos)
-  local maxDist = tonumber(attack.distance) or 8
-  local manaOk = mana() >= (tonumber(attack.mana) or 0)
-  local mobsOk = true
-  local needMobs = tonumber(attack.mobs) or 0
-
-  if (not targetIsPlayer) and needMobs > 0 then
-    mobsOk = countAttackMonstersAround(pPos, 7) >= needMobs
-  end
-
-  return dist <= maxDist and manaOk and mobsOk and isSafeAllowedForCurrentTarget(attack.safe, targetIsPlayer)
-end
-
-local function canUseRuneAttack(attack, dist, targetIsPlayer, pPos)
-  local runeId = tonumber(attack.id) or 0
-
-  if isRuneClientCooldownActive(runeId) then
-    return false
-  end
-
-  local maxDist = tonumber(attack.distance) or 8
-  local mobsOk = true
-  local needMobs = tonumber(attack.mobs) or 0
-
-  if (not targetIsPlayer) and needMobs > 0 then
-    mobsOk = countAttackMonstersAround(pPos, 7) >= needMobs
-  end
-
-  return dist <= maxDist and mobsOk and isSafeAllowedForCurrentTarget(attack.safe, targetIsPlayer)
-end
-
-local function isUnsafeNowForAttack(targetIsPlayer)
-  if targetIsPlayer then return false end
-
-  if type(LNS_HAS_UNSAFE_CONDITION) == "function" then
-    return LNS_HAS_UNSAFE_CONDITION() == true
-  end
-
-  return hasProtectedPlayerForUnsafe() == true
-end
-
 local function tryUseAttack(attack, dist, target, targetIsPlayer, pPos, unsafeNow)
   if not attack or not attack.enabled or not attackReady(attack) then return false end
-
-  --==================================================
-  -- MONK HARMONY LOCK
-  -- Builder só usa com harmonia abaixo de 5/5.
-  -- Finisher só usa com harmonia cheia 5/5.
-  --==================================================
   if attack.type == "spell" and monkHarmonyFlowActive() then
     local spellName = attack.spell or ""
     local harmony = monkHarmonyGet()
-
     if isHarmonyFinisherSpell(spellName) and harmony < MONK_HARMONY_MAX then
       return false
     end
-
     if isHarmonyBuilderSpell(spellName) and harmony >= MONK_HARMONY_MAX then
       return false
     end
   end
-
-  -- se estiver unsafe, ignora imediatamente spell/rune unsafe
   if unsafeNow and attack.safe ~= true then
     return false
   end
-
   local maxDist = tonumber(attack.distance) or 8
   if dist > maxDist then return false end
-
   if attack.type == "spell" then
     local manaOk = mana() >= (tonumber(attack.mana) or 0)
     if not manaOk then return false end
-
     if pausandoCombo and pausandoCombo >= now then return false end
-
     local needMobs = tonumber(attack.mobs) or 0
     if not targetIsPlayer and needMobs > 0 then
-      if countAttackMonstersAround(pPos, 7) < needMobs then
+      if countAttackMonstersAround(pPos, maxDist) < needMobs then
         return false
       end
     end
-
     local words = trimText(attack.spell)
     if words == "" then return false end
-
     say(words)
     combatGlobalUntil = now + WORLD_COMBAT_LOCK
     return true
   end
-
   if attack.type == "rune" then
     local runeId = tonumber(attack.id) or 0
-
     if pauseForMw and pauseForMw > now then return false end
     if pausandoCombo and pausandoCombo >= now then return false end
     if runeId <= 0 then return false end
     if isRuneClientCooldownActive(runeId) then return false end
-
     local needMobs = tonumber(attack.mobs) or 0
     if not targetIsPlayer and needMobs > 0 then
-      if countAttackMonstersAround(pPos, 7) < needMobs then
+      local targetPos = target and target.getPosition and target:getPosition() or nil
+      if not targetPos or countAttackMonstersByRunePattern(targetPos) < needMobs then
         return false
       end
     end
-
     local ok = pcall(function()
       useWith(runeId, target)
     end)
-
     if ok then
       combatGlobalUntil = now + 50
       return true
     end
   end
-
   return false
 end
-
 local function tryUseMonkBuilder(dist, target, targetIsPlayer, pPos)
   for _, attack in ipairs(cfg.attacks or {}) do
     if attack.enabled and attack.type == "spell" and isHarmonyBuilderSpell(attack.spell or "") then
@@ -3136,7 +2514,6 @@ local function tryUseMonkBuilder(dist, target, targetIsPlayer, pPos)
   end
   return false
 end
-
 local function tryUseMonkFinisher(dist, target, targetIsPlayer, pPos)
   for _, attack in ipairs(cfg.attacks or {}) do
     if attack.enabled and attack.type == "spell" and isHarmonyFinisherSpell(attack.spell or "") then
@@ -3147,7 +2524,6 @@ local function tryUseMonkFinisher(dist, target, targetIsPlayer, pPos)
   end
   return false
 end
-
 local monkHarmonyIcon = addIcon("lnsAttackBotMonkHarmony", {
   text = "Harmony",
   switchable = false,
@@ -3160,19 +2536,15 @@ macro(100, function()
     monkHarmonyIcon:hide()
     return
   end
-
   monkHarmonyIcon:show()
   local points = monkHarmonyGet()
-
   if points >= MONK_HARMONY_MAX then
     monkHarmonyIcon.text:setColoredText({tostring(points) .. "/5", "green"})
   else
     monkHarmonyIcon.text:setColoredText({tostring(points) .. "/5", "orange"})
   end
 end)
-
 resetComboCooldowns()
-
 if g_game and connect then
   connect(g_game, {
     onGameStart = function()
@@ -3180,24 +2552,20 @@ if g_game and connect then
     end
   })
 end
-
 local cdSpell = { active = false, spell = "", lastTime = 0 }
 local function stopSpellCalc()
   cdSpell.active = false
   cdSpell.spell = ""
   cdSpell.lastTime = 0
 end
-
 macro(100, function()
   if not cdSpell.active then return end
   if cdSpell.spell == "" then stopSpellCalc(); return end
   say(cdSpell.spell)
 end)
-
 onTalk(function(name, level, mode, text, channelId, pos)
   local player = g_game.getLocalPlayer()
   if not player then return end
-
   if cdSpell.active and name == player:getName() then
     local msg = trimText(text):lower()
     local expected = trimText(cdSpell.spell):lower()
@@ -3220,11 +2588,8 @@ onTalk(function(name, level, mode, text, channelId, pos)
       end
     end
   end
-
   if name ~= player:getName() then return end
-
   local spoken = trimText(text):lower()
-
   if isMonkHarmonyVocation() then
     if MONK_HARMONY_BUILDERS[spoken] then
       monkHarmonyAdd(1)
@@ -3232,7 +2597,6 @@ onTalk(function(name, level, mode, text, channelId, pos)
       monkHarmonyReset()
     end
   end
-
   for _, attack in ipairs(cfg.attacks or {}) do
     if attack.type == "spell" and attack.enabled then
       local spellWords = trimText(attack.spell):lower()
@@ -3244,13 +2608,10 @@ onTalk(function(name, level, mode, text, channelId, pos)
     end
   end
 end)
-
 local function getSelectedSpellNameForCooldown()
   local spell = ""
-
   if selectType and selectType:getCurrentOption() then
     local currentType = selectType:getCurrentOption().text or ""
-
     if currentType == "Editable" then
       spell = trimText(spellMagia and spellMagia:getText() or "")
     else
@@ -3261,35 +2622,26 @@ local function getSelectedSpellNameForCooldown()
   else
     spell = trimText(spellMagia and spellMagia:getText() or "")
   end
-
   if spell == "Nenhuma magia cadastrada" then
     spell = ""
   end
-
   return spell
 end
-
 if spellCalcCooldownBtn then
   spellCalcCooldownBtn.onClick = function()
     local spell = getSelectedSpellNameForCooldown()
-
     if spell == "" then
       warn("Digite ou selecione uma spell.")
       return
     end
-
     cdSpell.active = true
     cdSpell.spell = spell
     cdSpell.lastTime = 0
-
     warn("[CD-SPELL] Iniciado para: " .. spell .. ". Fale/caste a spell 2x para calcular.")
   end
 end
-
 macro(200, function()
   normalizeUnsafePKState()
-
-  -- usa o botão original "Pause Spells Unsafe" do painel principal
   if cfg.main.manterDist ~= true then
     if hasUnsafeDisabledByPK() then
       restoreUnsafeAttacksByPK()
@@ -3298,34 +2650,24 @@ macro(200, function()
     end
     return
   end
-
   local pk = iAmPK()
-
-  -- enquanto estiver PK, qualquer spell/rune unsafe que estiver ligada sera desligada.
-  -- A contagem de reativacao NAO comeca enquanto o PK ainda estiver ativo.
   if pk then
     disableUnsafeAttacksByPK()
     return
   end
-
-  -- Se morreu sem estar PK, libera as unsafe marcadas pela protecao.
   if hasUnsafeDisabledByPK() and iAmDead() then
     restoreUnsafeAttacksByPK()
     return
   end
-
-  -- Perdeu o PK: agora sim inicia/continua o tempo escolhido em "Reactive in".
   if hasUnsafeDisabledByPK() then
     local mins = tonumber(cfg.main.minutosVoltarUnsafe) or 5
     if mins < 1 then mins = 1 end
-
     if cfg.main.reenableUnsafeAt <= 0 then
       cfg.main.reenableUnsafeAt = nowMs() + (mins * 60 * 1000)
       saveAttackBotStorage()
       warn("[AttackBot] PK removido - unsafe voltam em " .. mins .. " min.")
       return
     end
-
     if nowMs() >= cfg.main.reenableUnsafeAt then
       restoreUnsafeAttacksByPK()
       return
@@ -3334,28 +2676,19 @@ macro(200, function()
     cfg.main.reenableUnsafeAt = 0
   end
 end)
-
--- =========================
--- EXIT ON FRAGS
--- =========================
 cfg.main.fragsAtual = tonumber(cfg.main.fragsAtual) or 0
-
 onTextMessage(function(mode, text)
   if not cfg or not cfg.main then return end
   if cfg.main.deslogarFrags ~= true then return end
   if type(text) ~= "string" then return end
   if not text:find("Warning! The murder of") then return end
-
   cfg.main.fragsAtual = tonumber(cfg.main.fragsAtual) or 0
   cfg.main.qtdeFrags = tonumber(cfg.main.qtdeFrags) or 1
-
   cfg.main.fragsAtual = cfg.main.fragsAtual + 1
   saveAttackBotStorage()
-
   if cfg.main.fragsAtual >= cfg.main.qtdeFrags then
     cfg.main.fragsAtual = 0
     saveAttackBotStorage()
-
     if modules and modules.game_interface and modules.game_interface.forceExit then
       modules.game_interface.forceExit()
     elseif g_game and g_game.safeLogout then
@@ -3363,33 +2696,24 @@ onTextMessage(function(mode, text)
     end
   end
 end)
-
 macro(50, function()
   if not attackBotStorage[switchCombo] or attackBotStorage[switchCombo].enabled ~= true then return end
   if pausandoCombo and pausandoCombo >= now then return end
-
   local player = g_game.getLocalPlayer()
   local target = g_game.getAttackingCreature()
-
   if not player or not target then return end
   if player:isNpc() then return end
-
   local pPos = player:getPosition()
   local tPos = target:getPosition()
-
   if not pPos or not tPos or pPos.z ~= tPos.z then
     return
   end
-
   local dist = math.max(
     math.abs(pPos.x - tPos.x),
     math.abs(pPos.y - tPos.y)
   )
-
   local targetIsPlayer = (target.isPlayer and target:isPlayer()) or false
-
   local unsafeNow = false
-
   if not targetIsPlayer then
     if type(LNS_HAS_UNSAFE_CONDITION) == "function" then
       unsafeNow = LNS_HAS_UNSAFE_CONDITION() == true
@@ -3397,23 +2721,17 @@ macro(50, function()
       unsafeNow = hasProtectedPlayerForUnsafe() == true
     end
   end
-
   local groupCooldownActive = isAttackGroupCooldownActive()
-
   if groupCooldownActive then
     attackGroupReadyAt = now + EXTRA_GROUP_DELAY
     return
   end
-
   if now < attackGroupReadyAt then
     return
   end
-
   if combatGlobalUntil > now then
     return
   end
-
-  -- monk system
   if monkHarmonyFlowActive() and not unsafeNow then
     if monkHarmonyGet() >= MONK_HARMONY_MAX then
       if tryUseMonkFinisher(dist, target, targetIsPlayer, pPos) then
@@ -3425,16 +2743,11 @@ macro(50, function()
       end
     end
   end
-
-  --==================================================
-  -- UNSAFE = somente magias SAFE
-  --==================================================
   if unsafeNow then
     for _, attack in ipairs(cfg.attacks or {}) do
       if attack
       and attack.enabled
       and attack.safe == true then
-
         if tryUseAttack(
           attack,
           dist,
@@ -3447,13 +2760,8 @@ macro(50, function()
         end
       end
     end
-
     return
   end
-
-  --==================================================
-  -- SAFE = fluxo normal
-  --==================================================
   for _, attack in ipairs(cfg.attacks or {}) do
     if tryUseAttack(
       attack,
