@@ -1602,7 +1602,6 @@ end)
 end)
 
 lnsRunBlock("SWAP", function()
-
 storage = storage or {}
 storage.LNSSmartSwapGlobal = storage.LNSSmartSwapGlobal or {}
 
@@ -2182,7 +2181,7 @@ panelSwap.closePanel.onClick = function()
   panelSwap:hide()
 end
 
-if modules._G.g_app.isMobile() then
+if g_app and g_app.isMobile and g_app.isMobile() then
   equipInterface:setSize("560 355")
 end
 
@@ -2588,13 +2587,53 @@ swapButton.settings.onClick = function()
   end
 end
 
-local SMART_SWAP_COOLDOWN_MS = 350
+local SMART_SWAP_IS_OLD_CLIENT = g_game.getClientVersion() < 960
+local SMART_SWAP_COOLDOWN_MS = 0
+local SMART_SWAP_ACTION_DELAY = 0
+local SMART_SWAP_TICK = 10
 
 local CD_MIGHT_RING = 3048
 local CD_SSA_AMULET = 3081
 
 local SMART_SLOT_FINGER = SlotFinger or 9
 local SMART_SLOT_NECK   = SlotNeck or 2
+
+local SMART_RING_NORMAL_PAIRS = {
+  [3091] = 3094,
+  [3053] = 3090,
+  [3098] = 3100,
+  [3052] = 3089,
+  [3051] = 3088,
+  [3097] = 3099,
+  [23533] = 23534,
+  [3049] = 3086,
+  [3050] = 3087,
+  [3093] = 3096,
+  [3092] = 3095
+}
+
+local SMART_AMULET_NORMAL_PAIRS = {
+  [23544] = 23528
+}
+
+local function smartResolveNormalPair(kind, selectedId)
+  selectedId = tonumber(selectedId) or 0
+  if selectedId <= 0 then return 0, 0 end
+
+  local map = kind == "ring" and SMART_RING_NORMAL_PAIRS or SMART_AMULET_NORMAL_PAIRS
+  local equippedId = map[selectedId]
+  if equippedId then return selectedId, equippedId end
+
+  for unequippedId, equipped in pairs(map) do
+    if selectedId == equipped then
+      return unequippedId, equipped
+    end
+  end
+
+  return selectedId, selectedId
+end
+
+local function smartActionDelay() end
 
 local ringCdUntil = 0
 local amuletCdUntil = { [1] = 0, [2] = 0, [3] = 0 }
@@ -2726,8 +2765,11 @@ local function smartEquipToSlot(id, slot)
   if id <= 0 then return false end
 
   if g_game.getClientVersion() >= 959 then
-    g_game.equipItemId(id)
-    return true
+    local ok, result = pcall(function() return g_game.equipItemId(id, slot) end)
+    if ok and result ~= false then return true end
+
+    ok, result = pcall(function() return g_game.equipItemId(id) end)
+    return ok and result ~= false
   end
 
   local it = smartFindItemById(id)
@@ -2740,12 +2782,15 @@ end
 local function smartEquipSpecial(id1, id2, slot)
   id1 = tonumber(id1) or 0
   id2 = tonumber(id2) or 0
+  local pick = id1 > 0 and id1 or id2
+  if pick <= 0 then return false end
 
   if g_game.getClientVersion() >= 959 then
-    local pick = id1 > 0 and id1 or id2
-    if pick <= 0 then return false end
-    g_game.equipItemId(pick)
-    return true
+    local ok, result = pcall(function() return g_game.equipItemId(pick, slot) end)
+    if ok and result ~= false then return true end
+
+    ok, result = pcall(function() return g_game.equipItemId(pick) end)
+    return ok and result ~= false
   end
 
   local it = smartFindItemById(id1) or smartFindItemById(id2)
@@ -2809,13 +2854,13 @@ local function getBestRingRowToEquip(hp, rows)
   return best
 end
 
-local function getRingNormalId(rows)
+local function getRingNormalIds(rows)
   for _, row in ipairs(rows) do
     if row.normalId > 0 then
-      return row.normalId
+      return smartResolveNormalPair("ring", row.normalId)
     end
   end
-  return 0
+  return 0, 0
 end
 
 local function processRingSwapSystem()
@@ -2829,7 +2874,7 @@ local function processRingSwapSystem()
 
   local currentRow = getCurrentEquippedRingRow(equippedId, rows)
   local bestRow = getBestRingRowToEquip(hp, rows)
-  local normalId = getRingNormalId(rows)
+  local normalId, normalEquippedId = getRingNormalIds(rows)
   local cdActive = ringCdUntil > t
 
   if currentRow then
@@ -2841,7 +2886,7 @@ local function processRingSwapSystem()
           if smartUseCooldown("ring", bestRow.customId, bestRow.equippedId) then
             ringCdUntil = t + SMART_SWAP_COOLDOWN_MS
           end
-          delay(120)
+          smartActionDelay()
           return true
         end
       end
@@ -2859,7 +2904,7 @@ local function processRingSwapSystem()
         if smartUseCooldown("ring", bestRow.customId, bestRow.equippedId) then
           ringCdUntil = t + SMART_SWAP_COOLDOWN_MS
         end
-        delay(120)
+        smartActionDelay()
         return true
       end
     end
@@ -2871,9 +2916,9 @@ local function processRingSwapSystem()
   end
 
   if normalId > 0 then
-    if equippedId ~= normalId then
+    if not smartIsIdIn(equippedId, normalId, normalEquippedId) then
       if smartEquipToSlot(normalId, SMART_SLOT_FINGER) then
-        delay(120)
+        smartActionDelay()
         return true
       end
     end
@@ -2882,7 +2927,7 @@ local function processRingSwapSystem()
 
   if equippedId ~= 0 then
     if smartUnequip(SMART_SLOT_FINGER) then
-      delay(120)
+      smartActionDelay()
       return true
     end
   end
@@ -2899,7 +2944,7 @@ local function processAmuletSwap(index, row)
   local neck = smartGetNeck()
   local equippedId = smartItemId(neck)
 
-  local normalId   = tonumber(row.normalId) or 0
+  local normalId, normalEquippedId = smartResolveNormalPair("amulet", row.normalId)
   local specialId  = tonumber(row.customId) or 0
   local specialEq  = tonumber(row.equippedId) or 0
   local equipPct   = tonumber(row.hpEquip) or 0
@@ -2916,7 +2961,7 @@ local function processAmuletSwap(index, row)
       if useCd then
         amuletCdUntil[index] = t + SMART_SWAP_COOLDOWN_MS
       end
-      delay(120)
+      smartActionDelay()
       return true
     end
     return false
@@ -2925,7 +2970,7 @@ local function processAmuletSwap(index, row)
   if useCd and cdActive then
     if hp > unequipPct and equippedId ~= 0 then
       if smartUnequip(SMART_SLOT_NECK) then
-        delay(120)
+        smartActionDelay()
         return true
       end
     end
@@ -2934,9 +2979,9 @@ local function processAmuletSwap(index, row)
 
   if hp > unequipPct then
     if hasNormal then
-      if equippedId ~= normalId then
+      if not smartIsIdIn(equippedId, normalId, normalEquippedId) then
         if smartEquipToSlot(normalId, SMART_SLOT_NECK) then
-          delay(120)
+          smartActionDelay()
           return true
         end
       end
@@ -2945,7 +2990,7 @@ local function processAmuletSwap(index, row)
 
     if equippedId ~= 0 then
       if smartUnequip(SMART_SLOT_NECK) then
-        delay(120)
+        smartActionDelay()
         return true
       end
     end
@@ -2961,14 +3006,15 @@ local function fullTankIsOn()
 
   return lnsFullTankActive == true
 end
-macro(50, function()
+
+macro(SMART_SWAP_TICK, function()
   if fullTankIsOn() then return end
   if not smartSwapStorage[switchSwap] or smartSwapStorage[switchSwap].enabled ~= true then return end
   if not ssCfg or not ssCfg.rings then return end
   processRingSwapSystem()
 end)
 
-macro(50, function()
+macro(SMART_SWAP_TICK, function()
   if fullTankIsOn() then return end
   if not smartSwapStorage[switchSwap] or smartSwapStorage[switchSwap].enabled ~= true then return end
   if not ssCfg or not ssCfg.amulets then return end
@@ -3390,6 +3436,7 @@ macro(200, function()
     end
   end
 end)
+
 end)
 
 lnsRunBlock("AUTOPREY", function()
