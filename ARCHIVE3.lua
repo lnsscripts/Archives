@@ -19402,7 +19402,7 @@ local function autoWalkTo(destination)
     pcall(function()
       autoWalk(destination, 124, {
         ignoreNonPathable = true,
-        precision = 1,
+        precision = 0,
         ignoreStairs = false
       })
     end)
@@ -19419,7 +19419,7 @@ local function stepTo(destination, delayMs)
   local path = findPath(me, destination, 40, {
     ignoreNonPathable = false,
     ignoreStairs = false,
-    precision = 1
+    precision = 0
   })
   if path and #path > 0 then
     g_game.walk(path[1])
