@@ -19402,7 +19402,7 @@ local function autoWalkTo(destination)
     pcall(function()
       autoWalk(destination, 124, {
         ignoreNonPathable = true,
-        precision = 0,
+        precision = 1,
         ignoreStairs = false
       })
     end)
@@ -19412,20 +19412,18 @@ local function stepTo(destination, delayMs)
   if not destination or now < runtime.nextStep then return end
   local me = player and player:getPosition()
   if not me or me.z ~= destination.z or samePos(me, destination) then return end
-
+  stopWalk()
   local walking = false
   pcall(function() walking = player:isWalking() end)
   if walking then return end
-
   local path = findPath(me, destination, 40, {
     ignoreNonPathable = false,
     ignoreStairs = false,
-    precision = 0
+    precision = 1
   })
-
   if path and #path > 0 then
     g_game.walk(path[1])
-    runtime.nextStep = now + math.max(100, tonumber(delayMs) or 0)
+    runtime.nextStep = now + (tonumber(delayMs) or 0)
   end
 end
 local function nextRoute()
@@ -19473,14 +19471,11 @@ macro(100, function()
   local required = math.max(1, tonumber(cfg.quantifyMobs) or 2)
   local keep = math.max(1, tonumber(cfg.keepDistance) or 2)
   if runtime.state == "killing" then
-    if not samePos(me, cfg.killPos) then
-      setTarget(false)
-      stepTo(cfg.killPos, 100)
+    setTarget(true)
+    if me.z == cfg.killPos.z and not samePos(me, cfg.killPos) then
+      stepTo(cfg.killPos, 0)
       return
     end
-
-    setTarget(true)
-
     if count == 0 then
       setTarget(false)
       runtime.state = "walking"
@@ -19493,11 +19488,10 @@ macro(100, function()
       runtime.state = "walking"
       return
     end
-    if me.z == cfg.killPos.z and getDistanceBetween(me, cfg.killPos) <= 3 then
+    if me.z == cfg.killPos.z and getDistanceBetween(me, cfg.killPos) <= 2 then
       nextRoute()
       runtime.state = "killing"
-      setTarget(false)
-      stopWalk()
+      setTarget(true)
       return
     end
     local closest = closestDistance(mobs, me)
