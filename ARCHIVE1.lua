@@ -8876,3 +8876,35 @@ onTalk(function(name, level, mode, text, channelId, pos)
 end)
 
 end)
+
+lnsRunBlock("contagemMWRETRO", function()
+local ITEM_ID = 16518
+local TIMER = 20000 -- 20 segundos
+local activeTimers = {}
+
+macro(400, function()
+  for _, tile in ipairs(g_map.getTiles(posz())) do
+    local p = tile:getPosition()
+    local key = p.x .. "," .. p.y .. "," .. p.z
+    local found = false
+
+    for _, item in ipairs(tile:getItems()) do
+      if item:getId() == ITEM_ID then
+        found = true
+
+        if not activeTimers[key] then
+          activeTimers[key] = now + TIMER
+        end
+
+        tile:setTimer(math.max(0, activeTimers[key] - now))
+        break
+      end
+    end
+
+    if not found and activeTimers[key] then
+      activeTimers[key] = nil
+      tile:setTimer(0)
+    end
+  end
+end)
+end)
