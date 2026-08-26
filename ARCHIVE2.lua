@@ -6774,6 +6774,7 @@ local IMBUE_OPTIONS = {
   "Elemental Protection (Ice)",
   "Elemental Protection (Energy)",
   "Elemental Protection (Holy)",
+  "Elemental Protection (Death)",
   "Skill Bonus (Axe)",
   "Skill Bonus (Sword)",
   "Skill Bonus (Club)",
@@ -6951,7 +6952,6 @@ local SCROLL_ID_TO_CONFIG_NAME = {
   [51448] = "Elemental Protection (Holy)",
   [51457] = "Elemental Protection (Ice)",
   [51449] = "Elemental Protection (Fire)",
-  [41454] = "Elemental Protection (Death)",
   [51454] = "Elemental Protection (Death)",
   [51447] = "Elemental Protection (Energy)",
   [51446] = "Skill Bonus (Axe)",
@@ -7090,6 +7090,7 @@ blankScroll < Panel
       self:addOption("Elemental Protection (Ice)")
       self:addOption("Elemental Protection (Energy)")
       self:addOption("Elemental Protection (Holy)")
+      self:addOption("Elemental Protection (Death)")
       self:addOption("Skill Bonus (Axe)")
       self:addOption("Skill Bonus (Sword)")
       self:addOption("Skill Bonus (Club)")
@@ -7745,7 +7746,7 @@ local SCROLL_RESULT_IDS = {
   ["Elemental Protection (Holy)"] = 51448,
   ["Elemental Protection (Ice)"] = 51457,
   ["Elemental Protection (Fire)"] = 51449,
-  ["Elemental Protection (Death)"] = 41454,
+  ["Elemental Protection (Death)"] = 51454,
   ["Elemental Protection (Energy)"] = 51447,
   ["Skill Bonus (Axe)"] = 51446,
   ["Skill Bonus (Sword)"] = 51460,
