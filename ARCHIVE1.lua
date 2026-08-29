@@ -8889,7 +8889,7 @@ macro(400, function()
     local found = false
 
     for _, item in ipairs(tile:getItems()) do
-      if item:getId() == ITEM_ID then
+      if item:getId() == ITEM_ID or item:getId() == 2128 then
         found = true
 
         if not activeTimers[key] then
