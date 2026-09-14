@@ -3868,7 +3868,7 @@ normalizeInitialStorage()
 loadRows()
 
 local healProfile = PROFILE
-local healSpellCooldown = 200 -- cooldown spell
+local healSpellCooldown = 100 -- cooldown spell
 local lastHealSpellCast = 0
 local spellLock = false
 
