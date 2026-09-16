@@ -2018,7 +2018,7 @@ local SkullWhite = 3
 local SkullRed = 4
 local SkullBlack = 5
 local PKSkulls = {
-  [SkullWhite] = true,
+  [SkullWhite] = false,
   [SkullRed] = true,
   [SkullBlack] = true
 }
@@ -2445,7 +2445,31 @@ local function countAttackMonstersByRunePattern(centerPos)
   end
   return count
 end
+local SPELL_ACTIVE_COOLDOWNS = {
+  ["exori gran"] = 105, ["exori"] = 80, ["exori mas"] = 106, ["exori hur"] = 107,
+  ["exori ico"] = 61, ["exori gran ico"] = 62, ["exori min"] = 59, ["exevo mas san"] = 124,
+  ["exori gran con"] = 57, ["exori con"] = 111, ["exori san"] = 122, ["exori pug"] = 221,
+  ["exori amp pug"] = 231, ["exori med pug"] = 219, ["exori mas pug"] = 223,
+  ["exori gran pug"] = 226, ["exori gran mas pug"] = 227, ["exori nia"] = 228,
+  ["exori mas nia"] = 241, ["exori gran nia"] = 220, ["exevo gran mas frigo"] = 118,
+  ["exevo gran mas tera"] = 56
+}
+local SPELL_GROUP_COOLDOWN = 1
+local function spellKey(spell)
+  return trimText(spell or ""):lower():gsub("%s*%[unsafe%]%s*$", "")
+end
+local function getMappedSpellId(attack) return SPELL_ACTIVE_COOLDOWNS[spellKey(attack and attack.spell)] end
+local function activeCooldownSupported()
+  return modules and modules.game_cooldown and type(modules.game_cooldown.isCooldownIconActive) == "function"
+end
+local function mappedSpellReady(attack)
+  local iconId = getMappedSpellId(attack)
+  if not iconId then return true end
+  if not activeCooldownSupported() then return now >= (tonumber(attack.nextCast) or 0) end
+  return modules.game_cooldown.isCooldownIconActive(iconId) ~= true
+end
 local function attackReady(attack)
+  if getMappedSpellId(attack) then return mappedSpellReady(attack) end
   return now >= (tonumber(attack.nextCast) or 0)
 end
 local function tryUseAttack(attack, dist, target, targetIsPlayer, pPos, unsafeNow)
@@ -2466,6 +2490,8 @@ local function tryUseAttack(attack, dist, target, targetIsPlayer, pPos, unsafeNo
   local maxDist = tonumber(attack.distance) or 8
   if dist > maxDist then return false end
   if attack.type == "spell" then
+    local mappedId = getMappedSpellId(attack)
+    if mappedId and activeCooldownSupported() and not mappedSpellReady(attack) then return false end
     local manaOk = mana() >= (tonumber(attack.mana) or 0)
     if not manaOk then return false end
     if pausandoCombo and pausandoCombo >= now then return false end
@@ -2601,8 +2627,10 @@ onTalk(function(name, level, mode, text, channelId, pos)
     if attack.type == "spell" and attack.enabled then
       local spellWords = trimText(attack.spell):lower()
       if spellWords ~= "" and spellWords == spoken then
-        attack.nextCast = now + (tonumber(attack.cooldown) or WORLD_COMBAT_LOCK)
-        combatGlobalUntil = now + WORLD_COMBAT_LOCK
+        if not getMappedSpellId(attack) then
+          attack.nextCast = now + (tonumber(attack.cooldown) or WORLD_COMBAT_LOCK)
+          combatGlobalUntil = now + WORLD_COMBAT_LOCK
+        end
         return
       end
     end
