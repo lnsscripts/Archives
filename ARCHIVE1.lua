@@ -3355,12 +3355,6 @@ local function resolveSpellMana(spellName)
   return SPELL_MANA_COST[spellName] or 0
 end
 
-
---==================================================
--- SPELL ICONS
--- Puxa o sprite da magia direto do modulo game_spelllist,
--- usando o nome/words da spell, igual no Max Attack.
---==================================================
 local healingSpellIconFile = type(SpelllistSettings) == "table" and SpelllistSettings.Default and SpelllistSettings.Default.iconFile or "/images/game/spells/defaultspells"
 local healingSpellIconCache = {}
 local healingSpellWordsToName = {}
@@ -3896,12 +3890,6 @@ normalizeInitialStorage()
 loadRows()
 
 local healProfile = PROFILE
-local healSpellCooldown = 100 -- cooldown spell
-local lastHealSpellCast = 0
-local spellLock = false
-
--- O cooldown das potions começa somente quando o personagem fala "Aaaah...".
--- Enquanto aguardamos essa confirmação, uma trava curta impede spam de useWith.
 local POTION_CONFIRM_TIMEOUT = 150
 local potionCooldownUntil = 0
 local pendingPotion = nil
@@ -4055,7 +4043,6 @@ end
 local function isPotionConfirmationMessage(text)
   local msg = tostring(text or ""):lower()
 
-  -- Aceita variações como "Aaaah...", inclusive com letras acentuadas.
   msg = msg
     :gsub("á", "a")
     :gsub("à", "a")
@@ -4077,7 +4064,6 @@ local function potionIsLocked()
       return true
     end
 
-    -- Nenhuma confirmação chegou dentro do limite; libera uma nova tentativa.
     pendingPotion = nil
   end
 
@@ -4104,54 +4090,34 @@ onTalk(function(name, level, mode, text, channelId, pos)
 
   local msg = tostring(text or "")
 
-  -- A contagem escolhida na row começa exatamente na confirmação "Aaaah...".
   if pendingPotion and isPotionConfirmationMessage(msg) then
     potionCooldownUntil = now + pendingPotion.delay
     pendingPotion = nil
     return
   end
 
-  local hdb = getHealDB()
-  local lowerMsg = msg:lower()
-  local count = getHealCount(hdb, "spells")
-
-  for i = 1, count do
-    local row = normalizeSpellRow(hdb.spells[i])
-    if row then
-      local words = row.spell:lower()
-
-      if words ~= "" and lowerMsg:find(words, 1, true) then
-        spellLock = true
-        lastHealSpellCast = nowMs()
-
-        schedule(healSpellCooldown, function()
-          spellLock = false
-        end)
-
-        return
-      end
-    end
-  end
 end)
 
-macro(100, function()
-  if not healingStorage.healingButton or healingStorage.healingButton.enabled ~= true then return end
-  if spellLock then return end
+local function isHealingGroupCooldownActive()
+  local active = false
+  pcall(function()
+    local cooldownModule = modules and modules.game_cooldown
+    if cooldownModule and type(cooldownModule.isGroupCooldownIconActive) == "function" then
+      active = cooldownModule.isGroupCooldownIconActive(2) == true
+    end
+  end)
+  return active
+end
 
-  local t = nowMs()
-  if t - lastHealSpellCast < healSpellCooldown then return end
+macro(50, function()
+  if not healingStorage.healingButton or healingStorage.healingButton.enabled ~= true then return end
+  if isHealingGroupCooldownActive() then return end
 
   local best = getBestHealSpell()
   if not best then return end
 
-  spellLock = true
-  lastHealSpellCast = t
   pauseFriendHeal = now + 500
   say(best.spell)
-
-  schedule(healSpellCooldown, function()
-    spellLock = false
-  end)
 end)
 
 macro(100, function()
@@ -4178,7 +4144,6 @@ end)
 
 saveHealingGlobal()
 
--- Prioridade absoluta para Healing próprio
 macro(50, function()
   if not healingStorage.healingButton or healingStorage.healingButton.enabled ~= true then return end
 
@@ -4206,6 +4171,7 @@ macro(50, function()
     pauseFriendHeal = now + 700
   end
 end)
+
 end)
 
 lnsRunBlock("CONDITIONS", function()
