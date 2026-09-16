@@ -39,6 +39,7 @@ local function lnsRunBlock(name, fn)
 end
 
 lnsRunBlock("ATTACKBOT", function()
+print("Checando atualizacoes...")
 storage = storage or {}
 storage.LNSAttackBotGlobal = type(storage.LNSAttackBotGlobal) == "table" and storage.LNSAttackBotGlobal or {}
 local attackBotStorage = storage.LNSAttackBotGlobal
