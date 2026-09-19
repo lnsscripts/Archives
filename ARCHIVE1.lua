@@ -2237,7 +2237,8 @@ local MONK_HARMONY_BUILDERS = {
   ["exori amp pug"] = true,
   ["exori gran mas pug"] = true,
   ["exori mas pug"] = true,
-  ["exori med pug"] = true
+  ["exori med pug"] = true,
+  ["exori mas amp pug"] = true
 }
 local MONK_HARMONY_FINISHERS = {
   ["exori mas nia"] = true,
