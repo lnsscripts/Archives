@@ -39,7 +39,6 @@ local function lnsRunBlock(name, fn)
 end
 
 lnsRunBlock("ATTACKBOT", function()
-print("Checando atualizacoes...")
 storage = storage or {}
 storage.LNSAttackBotGlobal = type(storage.LNSAttackBotGlobal) == "table" and storage.LNSAttackBotGlobal or {}
 local attackBotStorage = storage.LNSAttackBotGlobal
@@ -1661,15 +1660,19 @@ local predefinedSpells = {
     {"Exevo mas san", 4, 160, 1, 4106, false},
     {"Exori san", 9, 20, 1, 2100, true},
     {"Exori con", 9, 25, 1, 2100, true},
-    {"Exori gran con", 9, 55, 1, 6080, true}
+    {"Exori gran con", 9, 55, 1, 6080, true},
+    {"Exori dir san", 4, 175, 1, 4080, false},
+    {"Exori dir moe", 4, 135, 1, 4092, false}
   },
   ["Knight"] = {
     {"Exori gran", 1, 340, 1, 4106, false},
+    {"Exori scu", 1, 110, 1, 6092, false},
     {"Exori", 1, 115, 1, 2016, false},
     {"Exori min", 1, 200, 1, 4030, false},
     {"Exori mas", 2, 160, 1, 6100, false},
     {"Exori hur", 5, 40, 1, 4060, true},
     {"Exori ico", 1, 30, 1, 2070, true},
+    {"Exori ico scu", 4, 30, 4058, true},
     {"Exori gran ico", 1, 300, 1, 15020, true}
   },
   ["Mage"] = {
@@ -1689,6 +1692,7 @@ local predefinedSpells = {
     {"Exori Mas Pug", 2, 125, 1, 4035, false},
     {"Exori Gran Pug", 1, 325, 1, 15103, false},
     {"Exori Gran Mas Pug", 1, 315, 1, 16015, false},
+    {"Exori Mas Amp Pug", 1, 145, 1, 12080, false},
     {"Exori Nia", 1, 50, 1, 8074, true},
     {"Exori Mas Nia", 1, 195, 1, 8050, false},
     {"Exori Gran Nia", 1, 210, 1, 24103, true},
@@ -2448,13 +2452,20 @@ local function countAttackMonstersByRunePattern(centerPos)
   return count
 end
 local SPELL_ACTIVE_COOLDOWNS = {
-  ["exori gran"] = 105, ["exori"] = 80, ["exori mas"] = 106, ["exori hur"] = 107,
-  ["exori ico"] = 61, ["exori gran ico"] = 62, ["exori min"] = 59, ["exevo mas san"] = 124,
-  ["exori gran con"] = 57, ["exori con"] = 111, ["exori san"] = 122, ["exori pug"] = 221,
-  ["exori amp pug"] = 231, ["exori med pug"] = 219, ["exori mas pug"] = 223,
-  ["exori gran pug"] = 226, ["exori gran mas pug"] = 227, ["exori nia"] = 228,
-  ["exori mas nia"] = 241, ["exori gran nia"] = 220, ["exevo gran mas frigo"] = 118,
-  ["exevo gran mas tera"] = 56
+  -- KNIGHT
+  ["exori gran"] = 105, ["exori"] = 80, ["exori mas"] = 106, ["exori hur"] = 107, ["exori ico"] = 61, ["exori gran ico"] = 62, ["exori min"] = 59, ["exori scu"] = 244, ["exori ico scu"] = 243, 
+  -- PALADIN
+  ["exevo mas san"] = 124, ["exori gran con"] = 57, ["exori con"] = 111, ["exori san"] = 122, ["exori dir san"] = 245, ["exori dir moe"] = 246,
+  -- MONK
+  ["exori pug"] = 221,["exori amp pug"] = 231, ["exori med pug"] = 219, ["exori mas pug"] = 223, ["exori gran pug"] = 226, ["exori gran mas pug"] = 227, ["exori nia"] = 228, ["exori mas nia"] = 241, ["exori gran nia"] = 220, ["exori mas amp pug"] = 250, 
+  -- MAGE
+  -- SORC
+  ["exevo mort ora"] = 247, ["exori mort"] = 87, ["exevo vis lux"] = 22, ["exori vis"] = 88, ["exevo vis hur"] = 13, ["exevo flam hur"] = 19, ["exori flam"] = 89, ["exevo max mort"] = 210, ["exevo gran vis lux"] = 23, ["exevo gran flam hur"] = 204, ["exevo gran mas flam"] = 24,
+  ["exori frigo"] = 112, ["exori amp vis"] = 149, ["exevo gran mas vis"] = 119, ["exori gran vis"] = 151, ["exori gran flam"] = 150, ["exori tera"] = 113, ["exori max vis"] = 155, ["exori max flam"] = 154,
+  --DRUID
+  ["exevo tera hur"] = 120, ["exori max frigo"] = 156, ["exori max tera"] = 157, ["exevo gran mas frigo"] = 118, ["exevo gran mas tera"] = 56,  ["exevo fur frigo"] = 248, ["exevo fur tera"] = 249, ["exevo frigo hur"] = 121, ["exori moe ico"] = 148, ["exori gran frigo"] = 152, ["exori gran tera"] = 153,
+  ["exevo gran frigo hur"] = 43
+  
 }
 local SPELL_GROUP_COOLDOWN = 1
 local function spellKey(spell)
@@ -2805,6 +2816,7 @@ macro(50, function()
     end
   end
 end)
+
 end)
 
 lnsRunBlock("HEALING", function()
