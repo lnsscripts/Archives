@@ -15261,6 +15261,61 @@ local AUTO_ICONS = {
   },
 
   {
+    key = "follow_command_attack",
+    storageKey = "commandAttack",
+    itemId = 3349,
+    text = "COMMAND ATK",
+    show = false,
+
+    store = function()
+      if type(lnsIconsBridgeStorage) == "table" then
+        lnsIconsBridgeStorage.follow2Panel = lnsIconsBridgeStorage.follow2Panel or {}
+        return lnsIconsBridgeStorage.follow2Panel
+      end
+      return storage
+    end,
+
+    read = function()
+      return type(lnsIconsBridgeStorage) == "table"
+        and type(lnsIconsBridgeStorage.follow2Panel) == "table"
+        and lnsIconsBridgeStorage.follow2Panel.commandAttack == true
+    end,
+
+    write = function(state)
+      state = state == true
+
+      if type(lnsIconsBridgeStorage) == "table" then
+        lnsIconsBridgeStorage.follow2Panel = lnsIconsBridgeStorage.follow2Panel or {}
+        lnsIconsBridgeStorage.follow2Panel.commandAttack = state
+      end
+
+      if followCfg then
+        followCfg.commandAttack = state
+      end
+
+      if follow2 and follow2.comandoAttack then
+        pcall(function() follow2.comandoAttack:setOn(state) end)
+      end
+
+      if type(saveFollow2) == "function" then
+        pcall(saveFollow2)
+      end
+    end,
+
+    getButton = function()
+      return follow2 and follow2.comandoAttack
+    end,
+
+    save = function()
+      if type(saveFollow2) == "function" then
+        pcall(saveFollow2)
+      elseif type(saveIcons) == "function" and type(lnsIconsBridgeStorage) == "table" then
+        saveIcons(lnsIconsBridgeStorage)
+      end
+    end
+  },
+
+  {
     key = "attackbot_antired_full",
     itemId = 37339,
     text = "ANTI-RED FULL",
@@ -16754,7 +16809,7 @@ end)
 
 updateAllIcons()
 saveIcons()
- 
+
 end)
 
 lnsRunBlock("Task_Ragnar", function()
